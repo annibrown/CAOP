@@ -10,36 +10,37 @@ public class Costs : MonoBehaviour
     public float pairwiseCost;
     public float cdCost;
     public float caCost;
-    
+
     public float personRadius = 0.45f; // about 18 inches
     public float gridResolution = 0.1f; // how fine the walkable grid is
     public Vector3 roomMin; // room bounds
     public Vector3 roomMax;
-    
+
     public GameObject frontWall;
     public GameObject backWall;
     public GameObject leftWall;
     public GameObject rightWall;
 
     public float distanceBetweenObjects;
-    
+
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 
     // takes in a layout, composed of furniture F, walls R, and groups of furniture G
     public float ClearanceViolation()
     {
         clearanceCost = 0;
-        
+
         List<GameObject> combined = Layout.F.Concat(Layout.R).ToList();
 
         for (int i = 0; i < combined.Count; i++)
@@ -49,7 +50,7 @@ public class Costs : MonoBehaviour
             {
                 continue;
             }
-            
+
             for (int j = i + 1; j < combined.Count; j++)
             {
                 Collider gCollider = combined[j].GetComponent<Collider>();
@@ -57,7 +58,7 @@ public class Costs : MonoBehaviour
                 {
                     continue;
                 }
-                
+
                 Bounds f = fCollider.bounds;
                 Bounds g = gCollider.bounds;
 
@@ -66,7 +67,7 @@ public class Costs : MonoBehaviour
                     float overlapX = Mathf.Max(0, Mathf.Min(f.max.x, g.max.x) - Mathf.Max(0, f.min.x, g.min.x));
                     float overlapZ = Mathf.Max(0, Mathf.Min(f.max.z, g.max.z) - Mathf.Max(0, f.min.z, g.min.z));
                     float overlapArea = overlapX * overlapZ;
-                    
+
                     clearanceCost += overlapArea;
                 }
             }
@@ -89,7 +90,7 @@ public class Costs : MonoBehaviour
             0,
             frontWall.transform.position.z
         );
-        
+
         List<Vector2> walkablePoints = new List<Vector2>();
 
         for (float x = roomMin.x; x <= roomMax.x; x += gridResolution)
@@ -105,14 +106,14 @@ public class Costs : MonoBehaviour
                 }
             }
         }
-        
+
         int components = CountConnectedWalkableAreas(walkablePoints, gridResolution);
 
         // Ideally 1 component → open circulation
         return components - 1;
 
     }
-    
+
     int CountConnectedWalkableAreas(List<Vector2> points, float tolerance)
     {
         HashSet<Vector2> visited = new HashSet<Vector2>();
@@ -163,10 +164,12 @@ public class Costs : MonoBehaviour
             {
                 // if there's a relationship:
                 // set m1 and m2 to the correct values based on what the objects are
-                distanceBetweenObjects = Vector3.Distance(Layout.F[i].transform.position, Layout.F[j].transform.position);
+                distanceBetweenObjects =
+                    Vector3.Distance(Layout.F[i].transform.position, Layout.F[j].transform.position);
                 //pairwiseCost += Tfunction(distanceBetweenObjects, m1, m2, 2);
             }
         }
+
         return pairwiseCost * -1;
     }
 
@@ -184,7 +187,7 @@ public class Costs : MonoBehaviour
         {
             return Mathf.Pow(m2 / d, a);
         }
-        
+
         return 0;
     }
 
@@ -203,6 +206,7 @@ public class Costs : MonoBehaviour
                 }
             }
         }
+
         return cdCost * -1;
     }
 
@@ -216,13 +220,81 @@ public class Costs : MonoBehaviour
                 for (int j = i + 1; j < group.Count; j++)
                 {
                     // if both are seats
-                    
+                    GameObject f = group[i];
+                    GameObject g = group[j];
+                    Vector3 forwardF = f.transform.forward;
+                    Vector3 toG = (g.transform.position - f.transform.position).normalized;
+                    float angleF = Vector3.Angle(forwardF, toG);
+
+                    Vector3 forwardG = g.transform.forward;
+                    Vector3 toF = (f.transform.position - g.transform.position).normalized;
+                    float angleG = Vector3.Angle(forwardG, toF);
+
+                    caCost += (Mathf.Cos(angleF * Mathf.Deg2Rad) + 1) *
+                              (Mathf.Cos(angleG * Mathf.Deg2Rad) + 1);
                 }
             }
         }
+        return caCost * -1;
+    }
 
-        return caCost;
+    public float Balance()
+    {
+        return 0;
+    }
+
+    public float Alignment()
+    {
+        float alignmentCost = 0;
+        foreach (List<GameObject> group in Layout.G)
+        {
+            for (int i = 0; i < group.Count; i++)
+            {
+                for (int j = i + 1; j < group.Count; j++)
+                {
+                    GameObject f = group[i];
+                    GameObject g = group[j];
+                    
+                }
+            }
+
+        }
+        return alignmentCost * -1;
     }
     
-}
+    public float WallAlignment()
+    {
+        float wallAlignmentCost = 0;
+        foreach (List<GameObject> group in Layout.G)
+        {
+            foreach (GameObject f in group)
+            {
+                GameObject nearestWall = Layout.R[0];
+                float minDistance = float.MaxValue;
+
+                foreach (GameObject wall in Layout.R)
+                {
+                    float distance = Vector3.Distance(f.transform.position, wall.transform.position);
+                    if (distance < minDistance)
+                    {
+                        minDistance = distance;
+                        nearestWall = wall;
+                    }
+                }
+
+                Vector3 wallDirection = nearestWall.transform.forward;
+                
+                Vector3 globalX = Vector3.right;
+                float wallAngle = Vector3.SignedAngle(globalX, wallDirection, Vector3.up);
+                
+                Vector3 furnitureDirection = f.transform.forward;
+                float furnitureAngle = Vector3.SignedAngle(globalX, furnitureDirection, Vector3.up);
+
+                wallAlignmentCost += Mathf.Cos(4 * (furnitureAngle - wallAngle));
+            }
+        }
+        return wallAlignmentCost * -1;
+    }
+    
+}    
 
