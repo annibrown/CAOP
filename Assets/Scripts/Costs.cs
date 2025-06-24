@@ -6,12 +6,12 @@ using UnityEngine.ProBuilder;
 
 public class Costs : MonoBehaviour
 {
-    public float clearanceCost;
-    public float pairwiseCost;
-    public float cdCost;
-    public float caCost;
+    private static float clearanceCost;
+    private static float pairwiseCost;
+    private float cdCost;
+    private float caCost;
 
-    public float personRadius = 0.45f; // about 18 inches
+    public float personRadius = UnitConverter.InchesToMeters(18.0f); // about 18 inches
     public float gridResolution = 0.1f; // how fine the walkable grid is
     public Vector3 roomMin; // room bounds
     public Vector3 roomMax;
@@ -21,159 +21,172 @@ public class Costs : MonoBehaviour
     public GameObject leftWall;
     public GameObject rightWall;
 
-    public float distanceBetweenObjects;
+    private static float distanceBetweenObjects;
 
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public static float TotalCost()
     {
-
+        ClearanceViolation();
+        Circulation();
+        PairwiseDistance();
+        Debug.Log("Calculating total cost");
+        return 1;
     }
 
-    // Update is called once per frame
-    void Update()
+    // takes in a layout, composed of furniture F, walls R
+    private static float ClearanceViolation()
     {
+        List<GameObject> furniture = Layout.F;
 
-    }
-
-    // takes in a layout, composed of furniture F, walls R, and groups of furniture G
-    public float ClearanceViolation()
-    {
-        clearanceCost = 0;
-
-        List<GameObject> combined = Layout.F.Concat(Layout.R).ToList();
-
-        for (int i = 0; i < combined.Count; i++)
+        // --- STEP 1: Furniture vs Furniture Overlap ---
+        for (int i = 0; i < furniture.Count; i++)
         {
-            Collider fCollider = combined[i].GetComponent<Collider>();
-            if (fCollider == null)
+            GameObject objA = furniture[i];
+            Collider[] collidersA = objA.GetComponentsInChildren<Collider>();
+            if (collidersA.Length == 0) continue;
+
+            // Merge bounds for A
+            Bounds boundsA = collidersA[0].bounds;
+            for (int k = 1; k < collidersA.Length; k++)
+                boundsA.Encapsulate(collidersA[k].bounds);
+
+            for (int j = i + 1; j < furniture.Count; j++)
             {
-                continue;
-            }
+                GameObject objB = furniture[j];
+                Collider[] collidersB = objB.GetComponentsInChildren<Collider>();
+                if (collidersB.Length == 0) continue;
 
-            for (int j = i + 1; j < combined.Count; j++)
-            {
-                Collider gCollider = combined[j].GetComponent<Collider>();
-                if (gCollider == null)
+                // Merge bounds for B
+                Bounds boundsB = collidersB[0].bounds;
+                for (int l = 1; l < collidersB.Length; l++)
+                    boundsB.Encapsulate(collidersB[l].bounds);
+
+                if (boundsA.Intersects(boundsB))
                 {
-                    continue;
-                }
+                    // Calculate 2D overlap (XZ plane)
+                    float minX = Mathf.Max(boundsA.min.x, boundsB.min.x);
+                    float maxX = Mathf.Min(boundsA.max.x, boundsB.max.x);
+                    float minZ = Mathf.Max(boundsA.min.z, boundsB.min.z);
+                    float maxZ = Mathf.Min(boundsA.max.z, boundsB.max.z);
 
-                Bounds f = fCollider.bounds;
-                Bounds g = gCollider.bounds;
-
-                if (f.Intersects(g))
-                {
-                    float overlapX = Mathf.Max(0, Mathf.Min(f.max.x, g.max.x) - Mathf.Max(0, f.min.x, g.min.x));
-                    float overlapZ = Mathf.Max(0, Mathf.Min(f.max.z, g.max.z) - Mathf.Max(0, f.min.z, g.min.z));
+                    float overlapX = Mathf.Max(0f, maxX - minX);
+                    float overlapZ = Mathf.Max(0f, maxZ - minZ);
                     float overlapArea = overlapX * overlapZ;
 
                     clearanceCost += overlapArea;
+                    Debug.Log($"[Overlap] {objA.name} ↔ {objB.name} | Area: {overlapArea:F3} m²");
                 }
             }
         }
 
+        // --- STEP 2: Furniture vs Room Boundary ---
+        float roomWidth = UnitConverter.InchesToMeters(Parameters.floorSizeX);
+        float roomDepth = UnitConverter.InchesToMeters(Parameters.floorSizeZ);
+        Bounds roomBounds = new Bounds(Vector3.zero, new Vector3(roomWidth, 10f, roomDepth));
+
+        foreach (GameObject obj in furniture)
+        {
+            Collider[] colliders = obj.GetComponentsInChildren<Collider>();
+            if (colliders.Length == 0) continue;
+
+            // Merge bounds
+            Bounds merged = colliders[0].bounds;
+            for (int i = 1; i < colliders.Length; i++)
+                merged.Encapsulate(colliders[i].bounds);
+
+            // 2D bounds (XZ)
+            float minX = merged.min.x;
+            float maxX = merged.max.x;
+            float minZ = merged.min.z;
+            float maxZ = merged.max.z;
+
+            float roomMinX = roomBounds.min.x;
+            float roomMaxX = roomBounds.max.x;
+            float roomMinZ = roomBounds.min.z;
+            float roomMaxZ = roomBounds.max.z;
+
+            float overlapMinX = Mathf.Max(minX, roomMinX);
+            float overlapMaxX = Mathf.Min(maxX, roomMaxX);
+            float overlapMinZ = Mathf.Max(minZ, roomMinZ);
+            float overlapMaxZ = Mathf.Min(maxZ, roomMaxZ);
+
+            float overlapWidth = Mathf.Max(0f, overlapMaxX - overlapMinX);
+            float overlapDepth = Mathf.Max(0f, overlapMaxZ - overlapMinZ);
+
+            float objectArea = (maxX - minX) * (maxZ - minZ);
+            float overlapArea = overlapWidth * overlapDepth;
+
+            float outsideArea = objectArea - overlapArea;
+
+            if (outsideArea > 0.0001f)
+            {
+                clearanceCost += outsideArea;
+                Debug.Log($"[Boundary] {obj.name} exceeds room boundary. Outside area: {outsideArea:F3} m²");
+            }
+        }
+        Debug.Log("Clearance cost: " + clearanceCost);
         return clearanceCost;
     }
 
+
+
+
+
     // NEED TO MODIFY TO SUPPORT NON-RECTANGULAR ROOMS
-    public float Circulation()
+    private static float Circulation()
     {
-        roomMin = new Vector3(
-            leftWall.transform.position.x,
-            0,
-            backWall.transform.position.z
-        );
-
-        roomMax = new Vector3(
-            rightWall.transform.position.x,
-            0,
-            frontWall.transform.position.z
-        );
-
-        List<Vector2> walkablePoints = new List<Vector2>();
-
-        for (float x = roomMin.x; x <= roomMax.x; x += gridResolution)
-        {
-            for (float z = roomMin.z; z <= roomMax.z; z += gridResolution)
-            {
-                Vector3 worldPoint = new Vector3(x, 0.5f, z); // use y=0.5 to raycast through colliders
-
-                // If no obstacle is within personRadius, it's walkable
-                if (!Physics.CheckSphere(worldPoint, personRadius))
-                {
-                    walkablePoints.Add(new Vector2(x, z));
-                }
-            }
-        }
-
-        int components = CountConnectedWalkableAreas(walkablePoints, gridResolution);
-
-        // Ideally 1 component → open circulation
-        return components - 1;
-
+        FloorGridGenerator grid = GameObject.FindFirstObjectByType<FloorGridGenerator>();
+        int regionCount = grid.CountWalkableRegions();
+        Debug.Log("Number of connected empty regions: " + regionCount);
+        return regionCount - 1;
     }
-
-    int CountConnectedWalkableAreas(List<Vector2> points, float tolerance)
-    {
-        HashSet<Vector2> visited = new HashSet<Vector2>();
-        int components = 0;
-
-        foreach (var start in points)
-        {
-            if (visited.Contains(start)) continue;
-
-            components++;
-            Queue<Vector2> queue = new Queue<Vector2>();
-            queue.Enqueue(start);
-            visited.Add(start);
-
-            while (queue.Count > 0)
-            {
-                Vector2 current = queue.Dequeue();
-
-                // Check 4 neighbors (up/down/left/right)
-                Vector2[] neighbors = new Vector2[]
-                {
-                    current + new Vector2(gridResolution, 0),
-                    current + new Vector2(-gridResolution, 0),
-                    current + new Vector2(0, gridResolution),
-                    current + new Vector2(0, -gridResolution)
-                };
-
-                foreach (var neighbor in neighbors)
-                {
-                    if (points.Contains(neighbor) && !visited.Contains(neighbor))
-                    {
-                        visited.Add(neighbor);
-                        queue.Enqueue(neighbor);
-                    }
-                }
-            }
-        }
-
-        return components;
-    }
-
-    public float PairwiseDistance()
+    
+    private static float PairwiseDistance()
     {
         pairwiseCost = 0;
+
         for (int i = 0; i < Layout.F.Count; i++)
         {
             for (int j = i + 1; j < Layout.F.Count; j++)
             {
-                // if there's a relationship:
-                // set m1 and m2 to the correct values based on what the objects are
-                distanceBetweenObjects =
-                    Vector3.Distance(Layout.F[i].transform.position, Layout.F[j].transform.position);
-                //pairwiseCost += Tfunction(distanceBetweenObjects, m1, m2, 2);
+                if ((Layout.F[i].CompareTag("Chair") && Layout.F[j].CompareTag("Table")) ||
+                    (Layout.F[i].CompareTag("Table") && Layout.F[j].CompareTag("Chair")))
+                {
+                    float m1 = UnitConverter.InchesToMeters(16.0f);
+                    float m2 = UnitConverter.InchesToMeters(18.0f);
+
+                    Renderer rendA = Layout.F[i].GetComponentInChildren<Renderer>();
+                    Renderer rendB = Layout.F[j].GetComponentInChildren<Renderer>();
+                    if (rendA == null || rendB == null) continue;
+
+                    Bounds boundsA = rendA.bounds;
+                    Bounds boundsB = rendB.bounds;
+
+                    if (boundsA.Intersects(boundsB))
+                    {
+                        distanceBetweenObjects = 0f;
+                    }
+                    else
+                    {
+                        Vector3 pointA = boundsA.ClosestPoint(boundsB.center);
+                        Vector3 pointB = boundsB.ClosestPoint(boundsA.center);
+                        distanceBetweenObjects = Vector3.Distance(pointA, pointB);
+                    }
+
+                    float t = Tfunction(distanceBetweenObjects, m1, m2, 2);
+                    pairwiseCost += t;
+
+                    Debug.Log("Edge-to-edge distance: " + distanceBetweenObjects);
+                    Debug.Log("T: " + t);
+                }
             }
         }
 
         return pairwiseCost * -1;
     }
 
-    private float Tfunction(float d, float m1, float m2, float a)
+
+    private static float Tfunction(float d, float m1, float m2, float a)
     {
         if (d < m1)
         {
@@ -194,16 +207,13 @@ public class Costs : MonoBehaviour
     public float ConversationDistance()
     {
         cdCost = 0;
-        foreach (List<GameObject> group in Layout.G)
+        for (int i = 0; i < Layout.F.Count; i++)
         {
-            for (int i = 0; i < group.Count; i++)
+            for (int j = i + 1; j < Layout.F.Count; j++)
             {
-                for (int j = i + 1; j < group.Count; j++)
-                {
-                    // if both are seats
-                    distanceBetweenObjects = Vector3.Distance(group[i].transform.position, group[j].transform.position);
-                    cdCost += Tfunction(distanceBetweenObjects, 4, 8, 2);
-                }
+                // if both are seats
+                distanceBetweenObjects = Vector3.Distance(Layout.F[i].transform.position, Layout.F[j].transform.position);
+                cdCost += Tfunction(distanceBetweenObjects, 4, 8, 2);
             }
         }
 
@@ -213,26 +223,23 @@ public class Costs : MonoBehaviour
     public float ConversationAngle()
     {
         caCost = 0;
-        foreach (List<GameObject> group in Layout.G)
+        for (int i = 0; i < Layout.F.Count; i++)
         {
-            for (int i = 0; i < group.Count; i++)
+            for (int j = i + 1; j < Layout.F.Count; j++)
             {
-                for (int j = i + 1; j < group.Count; j++)
-                {
-                    // if both are seats
-                    GameObject f = group[i];
-                    GameObject g = group[j];
-                    Vector3 forwardF = f.transform.forward;
-                    Vector3 toG = (g.transform.position - f.transform.position).normalized;
-                    float angleF = Vector3.Angle(forwardF, toG);
+                // if both are seats
+                GameObject f = Layout.F[i];
+                GameObject g = Layout.F[j];
+                Vector3 forwardF = f.transform.forward;
+                Vector3 toG = (g.transform.position - f.transform.position).normalized;
+                float angleF = Vector3.Angle(forwardF, toG);
 
-                    Vector3 forwardG = g.transform.forward;
-                    Vector3 toF = (f.transform.position - g.transform.position).normalized;
-                    float angleG = Vector3.Angle(forwardG, toF);
+                Vector3 forwardG = g.transform.forward;
+                Vector3 toF = (f.transform.position - g.transform.position).normalized;
+                float angleG = Vector3.Angle(forwardG, toF);
 
-                    caCost += (Mathf.Cos(angleF * Mathf.Deg2Rad) + 1) *
-                              (Mathf.Cos(angleG * Mathf.Deg2Rad) + 1);
-                }
+                caCost += (Mathf.Cos(angleF * Mathf.Deg2Rad) + 1) *
+                          (Mathf.Cos(angleG * Mathf.Deg2Rad) + 1);
             }
         }
         return caCost * -1;
@@ -246,18 +253,15 @@ public class Costs : MonoBehaviour
     public float Alignment()
     {
         float alignmentCost = 0;
-        foreach (List<GameObject> group in Layout.G)
+        
+        for (int i = 0; i < Layout.F.Count; i++)
         {
-            for (int i = 0; i < group.Count; i++)
+            for (int j = i + 1; j < Layout.F.Count; j++)
             {
-                for (int j = i + 1; j < group.Count; j++)
-                {
-                    GameObject f = group[i];
-                    GameObject g = group[j];
+                GameObject f = Layout.F[i];
+                GameObject g = Layout.F[j];
                     
-                }
             }
-
         }
         return alignmentCost * -1;
     }
@@ -265,33 +269,31 @@ public class Costs : MonoBehaviour
     public float WallAlignment()
     {
         float wallAlignmentCost = 0;
-        foreach (List<GameObject> group in Layout.G)
+        
+        foreach (GameObject f in Layout.F)
         {
-            foreach (GameObject f in group)
+            GameObject nearestWall = Layout.R[0];
+            float minDistance = float.MaxValue;
+
+            foreach (GameObject wall in Layout.R)
             {
-                GameObject nearestWall = Layout.R[0];
-                float minDistance = float.MaxValue;
-
-                foreach (GameObject wall in Layout.R)
+                float distance = Vector3.Distance(f.transform.position, wall.transform.position);
+                if (distance < minDistance)
                 {
-                    float distance = Vector3.Distance(f.transform.position, wall.transform.position);
-                    if (distance < minDistance)
-                    {
-                        minDistance = distance;
-                        nearestWall = wall;
-                    }
+                    minDistance = distance;
+                    nearestWall = wall;
                 }
-
-                Vector3 wallDirection = nearestWall.transform.forward;
-                
-                Vector3 globalX = Vector3.right;
-                float wallAngle = Vector3.SignedAngle(globalX, wallDirection, Vector3.up);
-                
-                Vector3 furnitureDirection = f.transform.forward;
-                float furnitureAngle = Vector3.SignedAngle(globalX, furnitureDirection, Vector3.up);
-
-                wallAlignmentCost += Mathf.Cos(4 * (furnitureAngle - wallAngle));
             }
+
+            Vector3 wallDirection = nearestWall.transform.forward;
+                
+            Vector3 globalX = Vector3.right;
+            float wallAngle = Vector3.SignedAngle(globalX, wallDirection, Vector3.up);
+                
+            Vector3 furnitureDirection = f.transform.forward;
+            float furnitureAngle = Vector3.SignedAngle(globalX, furnitureDirection, Vector3.up);
+
+            wallAlignmentCost += Mathf.Cos(4 * (furnitureAngle - wallAngle));
         }
         return wallAlignmentCost * -1;
     }

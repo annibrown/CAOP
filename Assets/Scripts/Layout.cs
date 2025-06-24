@@ -1,24 +1,17 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Layout : MonoBehaviour
 {
     
-    public static List<GameObject> F = new List<GameObject>();                         // furniture
-    public static List<GameObject> R = new List<GameObject>();                         // walls
-    public static List<List<GameObject>> G = new List<List<GameObject>>();             // groups of furniture
-    
+    public static List<GameObject> F = new List<GameObject>();      // furniture
+    public static List<GameObject> R = new List<GameObject>();      // walls
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        // initialize all lists
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        CollectWalls();
     }
     
     // runs before Start
@@ -26,11 +19,13 @@ public class Layout : MonoBehaviour
     {
         Layout.F.Clear();
         Layout.R.Clear();
-        Layout.G.Clear();
         
         // initialize all lists
-        
-        
+    }
+    
+    public static void CollectWalls()
+    {
+        R = new List<GameObject>(GameObject.FindGameObjectsWithTag("Wall"));
     }
 
 }
