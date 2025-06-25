@@ -11,8 +11,8 @@ public class FurnitureSpawner : MonoBehaviour
         // create chairs
         for (int i = 0; i < Parameters.numberOfChairs; i++)
         {
-            Vector3 position = new Vector3(-1.0f, 0.4f, 2.1f - (2.1f * i));
-            float angle = 45.0f + (i * 20.0f); // example: 0°, 20°, 40°, 60°, etc.
+            Vector3 position = new Vector3(1.0f - (i * 2.0f), 0.4f, 1.0f + (0.0f * i));
+            float angle = 0.0f + (i * 0.0f); // example: 0°, 20°, 40°, 60°, etc.
 
             GameObject newChair = Instantiate(
                 chairToCreate,
