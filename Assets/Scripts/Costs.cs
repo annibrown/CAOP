@@ -34,7 +34,7 @@ public class Costs : MonoBehaviour
         //ConversationAngle();
         //Alignment();
         //WallAlignment();
-        Balance();
+        //Balance();
         Debug.Log("Calculating total cost");
         return 1;
     }

@@ -11,7 +11,7 @@ public class FurnitureSpawner : MonoBehaviour
         // create chairs
         for (int i = 0; i < Parameters.numberOfChairs; i++)
         {
-            Vector3 position = new Vector3(1.0f - (i * 2.0f), 0.4f, 1.0f + (0.0f * i));
+            Vector3 position = new Vector3(0.0f - (i * 0.0f), 0.4f, 0.0f + (0.8f * i));
             float angle = 0.0f + (i * 0.0f); // example: 0°, 20°, 40°, 60°, etc.
 
             GameObject newChair = Instantiate(
@@ -43,6 +43,22 @@ public class FurnitureSpawner : MonoBehaviour
         Layout.CollectWalls(); // just in case
         FloorGridGenerator grid = FindFirstObjectByType<FloorGridGenerator>();
         grid.UpdateTileColors();
+    }
+
+    public void SpawnChair()
+    {
+        Debug.Log("Spawning chair");
+        
+        GameObject newChair = Instantiate(chairToCreate, new Vector3(0.0f, 0.4f, 0.0f), Quaternion.identity);
+        newChair.tag = "Chair";
+        Layout.F.Add(newChair);
+    }
+    
+    public void SpawnTable()
+    {
+        GameObject newTable = Instantiate(tableToCreate, new Vector3(0.0f, 0.2f, 0.0f), Quaternion.identity);
+        newTable.tag = "Table";
+        Layout.F.Add(newTable);
     }
     
 }

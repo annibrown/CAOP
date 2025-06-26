@@ -2,7 +2,7 @@ using UnityEngine;
 
 public static class Parameters
 {
-    public static int numberOfChairs = 2;
+    public static int numberOfChairs = 0;
     public static int numberOfTables = 0;
     public static int numberOfFurnitureItems = 4;
     public static int numberOfWalls = 4;
