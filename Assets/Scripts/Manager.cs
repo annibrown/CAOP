@@ -2,18 +2,11 @@ using UnityEngine;
 
 public class Manager : MonoBehaviour
 {
-    public static bool readyToCalculate = false;
-    private bool calculated = false;
+    public FloorGridGenerator floorGrid; // assign this in the Inspector
 
-    // Update is called once per frame
-    void Update()
+    public void Calculate()
     {
-        //Debug.Log("Manager Update Called");
-        if (readyToCalculate == true && calculated == false)
-        {
-            //Debug.Log("Ready to calculate!");
-            Costs.TotalCost();
-            calculated = true;
-        }
+        floorGrid.UpdateTileColors();
+        Costs.TotalCost();
     }
-}    
+}

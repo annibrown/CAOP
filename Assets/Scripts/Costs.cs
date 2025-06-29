@@ -24,7 +24,15 @@ public class Costs : MonoBehaviour
 
     private static float distanceBetweenObjects;
 
+    public GameObject tempEmphasis;
+    
+    public static GameObject emphasisPoint;
 
+    void Awake()
+    {
+        emphasisPoint = tempEmphasis;
+    }
+    
     public static float TotalCost()
     {
         //ClearanceViolation();
@@ -35,6 +43,7 @@ public class Costs : MonoBehaviour
         //Alignment();
         //WallAlignment();
         //Balance();
+        Emphasis();
         Debug.Log("Calculating total cost");
         return 1;
     }
@@ -133,10 +142,6 @@ public class Costs : MonoBehaviour
         Debug.Log("Clearance cost: " + clearanceCost);
         return clearanceCost;
     }
-
-
-
-
 
     // NEED TO MODIFY TO SUPPORT NON-RECTANGULAR ROOMS
     private static float Circulation()
@@ -409,6 +414,57 @@ public class Costs : MonoBehaviour
         }
         Debug.Log("Wall alignment cost: " + (wallAlignmentCost * -1) );
         return wallAlignmentCost * -1;
+    }
+
+    private static float Emphasis()
+    {
+        float emphasisCost = 0;
+
+        //foreach (List<GameObject> group in Layout.G)
+        //{
+            foreach (GameObject obj in Layout.F)
+            {
+                if (obj.CompareTag("Chair"))
+                {
+                    Vector3 forward = obj.transform.forward;
+                    Vector3 toEmphasis = (emphasisPoint.transform.position - obj.transform.position).normalized;
+                    float angle = Vector3.Angle(forward, toEmphasis);
+
+                    emphasisCost += Mathf.Cos(angle * Mathf.Deg2Rad);
+                }
+            }
+        //}
+        Debug.Log("Emphasis: " + emphasisCost);
+        return emphasisCost * -1;
+    }
+
+    private static float Symmetry()
+    {
+        float symmetryCost = 0;
+        
+        //foreach (List<GameObject> group in Layout.G)
+        //{
+        for (int i = 0; i < Layout.F.Count; i++)
+        {
+            GameObject f = Layout.F[i];
+            for (int j = 0; j < Layout.F.Count; j++)
+            {
+                GameObject g = Layout.F[j];
+                if (f.CompareTag(g.tag) && (i != j))
+                {
+                    
+                }
+                
+            }
+        }
+        //}
+        
+        return symmetryCost * -1;
+    }
+
+    private static float SFunction(GameObject f, GameObject g, GameObject p)
+    {
+        
     }
     
 }    

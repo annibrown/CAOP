@@ -6,35 +6,36 @@ public class ObjectSelector : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0)) // Left click
+        // Left mouse button down = try to select
+        if (Input.GetMouseButtonDown(0))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                if (hit.collider.CompareTag("Chair") || hit.collider.CompareTag("Table"))
+                Debug.Log("Ray hit: " + hit.collider.name + " (GameObject: " + hit.collider.gameObject.name + ")");
+
+                // Try to find a DraggableObject on the parent of the clicked collider
+                DraggableObject draggable = hit.collider.GetComponentInParent<DraggableObject>();
+                if (draggable != null)
                 {
-                    Select(hit.collider.GetComponentInParent<DraggableObject>());
+                    Debug.Log("✅ Selected: " + draggable.name);
+                    Select(draggable);
                 }
                 else
                 {
+                    Debug.LogWarning("❌ No DraggableObject found on parent of: " + hit.collider.name);
                     Deselect();
                 }
-                
-                
-                if (hit.collider != null)
-                {
-                    Debug.Log("Hit object: " + hit.collider.name);
-                }
-
-                
             }
             else
             {
+                Debug.Log("Raycast hit nothing.");
                 Deselect();
             }
         }
 
+        // Left mouse button up = stop dragging
         if (Input.GetMouseButtonUp(0))
         {
             Deselect();

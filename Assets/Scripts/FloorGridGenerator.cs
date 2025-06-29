@@ -107,7 +107,6 @@ public class FloorGridGenerator : MonoBehaviour
         }
         
         // END OF CIRCULATION DISPLAY
-        Manager.readyToCalculate = true;
         
     }
     
