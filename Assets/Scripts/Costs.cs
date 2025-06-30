@@ -40,13 +40,15 @@ public class Costs : MonoBehaviour
         //ClearanceViolation();
         //Circulation();
         //PairwiseDistance();
+        PairwiseAngle();
         //ConversationDistance();
         //ConversationAngle();
         //Alignment();
         //WallAlignment();
         //Balance();
         //Emphasis();
-        Symmetry();
+        //Symmetry();
+        
         Debug.Log("Calculating total cost");
         return 1;
     }
@@ -216,6 +218,31 @@ public class Costs : MonoBehaviour
         }
 
         return 0;
+    }
+
+    private static float PairwiseAngle()
+    {
+        float pairwiseAngleCost = 0;
+        
+        for (int i = 0; i < Layout.F.Count; i++)
+        {
+            for (int j = i + 1; j < Layout.F.Count; j++)
+            {
+                if ((Layout.F[i].CompareTag("Chair") && Layout.F[j].CompareTag("Table")))
+                {
+                    // make sure table is in front of chair
+                    GameObject chair = Layout.F[i];
+                    GameObject table = Layout.F[j];
+                    Vector3 forwardChair = chair.transform.forward;
+                    Vector3 toTable = (table.transform.position - chair.transform.position).normalized;
+                    float angleToTable = Vector3.Angle(forwardChair, toTable);
+                    
+                    pairwiseAngleCost += Mathf.Cos(angleToTable * Mathf.Deg2Rad);
+                }
+            }
+        }
+        
+        return pairwiseAngleCost * -1;
     }
 
     // calculates t value for if seats are within 4-8 feet of each other
