@@ -27,6 +27,8 @@ public class Costs : MonoBehaviour
     public GameObject tempEmphasis;
     
     public static GameObject emphasisPoint;
+    public static bool reflectOverX = true;
+    public static bool onWall = false;
 
     void Awake()
     {
@@ -43,7 +45,8 @@ public class Costs : MonoBehaviour
         //Alignment();
         //WallAlignment();
         //Balance();
-        Emphasis();
+        //Emphasis();
+        Symmetry();
         Debug.Log("Calculating total cost");
         return 1;
     }
@@ -441,30 +444,133 @@ public class Costs : MonoBehaviour
     private static float Symmetry()
     {
         float symmetryCost = 0;
+        float max = 0;
+        
+        // Check symmetry axis
+        
+        Collider[] collidersE = emphasisPoint.GetComponentsInChildren<Collider>();
+        Bounds boundsE = collidersE[0].bounds;
+        for (int k = 1; k < collidersE.Length; k++)
+            boundsE.Encapsulate(collidersE[k].bounds);
+
+        foreach (GameObject wall in Layout.R)
+        {
+            Collider[] collidersW = wall.GetComponentsInChildren<Collider>();
+            Bounds boundsW = collidersW[0].bounds;
+            for (int l = 1; l < collidersW.Length; l++)
+                boundsW.Encapsulate(collidersW[l].bounds);
+
+            if (boundsE.Intersects(boundsW))
+            {
+                Debug.Log("COLLIDED!");
+                onWall = true;
+                
+                // wall is longer along x axis
+                if ((boundsW.max.x - boundsW.min.x) > (boundsW.max.z - boundsW.min.z))
+                {
+                    Debug.Log("Collide Z");
+                    reflectOverX = false;
+                }
+                else
+                {
+                    Debug.Log("Collide X");
+                    reflectOverX = true;
+                }
+            }
+        }
         
         //foreach (List<GameObject> group in Layout.G)
         //{
         for (int i = 0; i < Layout.F.Count; i++)
         {
+            max = -1000;
             GameObject f = Layout.F[i];
             for (int j = 0; j < Layout.F.Count; j++)
             {
                 GameObject g = Layout.F[j];
                 if (f.CompareTag(g.tag) && (i != j))
                 {
-                    
+                    float newMax = SFunction(f, g, emphasisPoint);
+                    if (newMax > max)
+                    {
+                        max = newMax;
+                    }
                 }
                 
             }
+            symmetryCost += max;
         }
         //}
-        
+        Debug.Log("Symmetry: " + symmetryCost);
+        Debug.Log(reflectOverX == true ? "Reflect over X" : "Reflect over Z");
         return symmetryCost * -1;
+    }
+
+    public static void SymmetricX()
+    {
+            Debug.Log("X");
+            reflectOverX = true;
+    }
+
+    public static void SymmetricZ()
+    {
+            Debug.Log("Z");
+            reflectOverX = false;
     }
 
     private static float SFunction(GameObject f, GameObject g, GameObject p)
     {
+        Vector3 forwardF = f.transform.forward;
+        Vector3 toEmphasis = (emphasisPoint.transform.position - f.transform.position).normalized;
+        float angleF = Vector3.Angle(forwardF, toEmphasis);
         
+        Vector3 reflectedPos = ReflectPosition(g.transform.position, p.transform.position, reflectOverX);
+        Vector3 reflectedForward = ReflectDirection(g.transform.forward, reflectOverX);
+
+        Vector3 toE = p.transform.position - reflectedPos;
+        float angleG = Vector3.Angle(reflectedForward, toE);
+
+        float combinedAngle = angleF - angleG;
+        
+        return Mathf.Cos(combinedAngle * Mathf.Deg2Rad) - Vector3.Distance(f.transform.position, reflectedPos);
+    }
+    
+    private static Vector3 ReflectPosition(Vector3 original, Vector3 lineOrigin, bool overX)
+    {
+        Vector3 reflected = original;
+
+        if (!overX)
+        {
+            // Reflect over vertical line at lineOrigin.x
+            float dx = original.x - lineOrigin.x;
+            reflected.x = lineOrigin.x - dx;
+        }
+        else
+        {
+            // Reflect over horizontal line at lineOrigin.z
+            float dz = original.z - lineOrigin.z;
+            reflected.z = lineOrigin.z - dz;
+        }
+
+        return reflected;
+    }
+
+    private static Vector3 ReflectDirection(Vector3 direction, bool overX)
+    {
+        Vector3 reflected = direction;
+
+        if (!overX)
+        {
+            // Reflect over vertical line → flip x direction
+            reflected.x = -reflected.x;
+        }
+        else
+        {
+            // Reflect over horizontal line → flip z direction
+            reflected.z = -reflected.z;
+        }
+
+        return reflected;
     }
     
 }    
