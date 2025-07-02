@@ -5,9 +5,9 @@ using System.Linq;
 public class Layout : MonoBehaviour
 {
     
-    public static List<GameObject> F = new List<GameObject>();      // furniture
-    public static List<GameObject> R = new List<GameObject>();      // walls
-    public static List<List<GameObject>> G = new List<List<GameObject>>();      // groups
+    public List<GameObject> F = new List<GameObject>();      // furniture
+    public List<List<GameObject>> G = new List<List<GameObject>>();      // groups
+    public List<GameObject> R; // Assigned once for all layouts
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -15,16 +15,7 @@ public class Layout : MonoBehaviour
         CollectWalls();
     }
     
-    // runs before Start
-    void Awake()
-    {
-        Layout.F.Clear();
-        Layout.R.Clear();
-        
-        // initialize all lists
-    }
-    
-    public static void CollectWalls()
+    public void CollectWalls()
     {
         R = new List<GameObject>(GameObject.FindGameObjectsWithTag("Wall"));
     }

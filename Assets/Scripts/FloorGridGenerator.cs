@@ -38,7 +38,7 @@ public class FloorGridGenerator : MonoBehaviour
     }
 
 
-    public void UpdateTileColors()
+    public void UpdateTileColors(Layout layout)
     {
         float gridOffsetX = (cols - 1) * tileSize / 2f;
         float gridOffsetZ = (rows - 1) * tileSize / 2f;
@@ -52,7 +52,7 @@ public class FloorGridGenerator : MonoBehaviour
         }
 
         // Step 2: Compute and highlight furniture tiles
-        foreach (GameObject obj in Layout.F)
+        foreach (GameObject obj in layout.F)
         {
             Furniture f = obj.GetComponent<Furniture>();
             if (f == null) continue;
@@ -73,7 +73,7 @@ public class FloorGridGenerator : MonoBehaviour
         }
 
         // Step 3: Radius highlight around wall objects (optional)
-        foreach (GameObject wallObj in Layout.R)
+        foreach (GameObject wallObj in layout.R)
         {
             Renderer rend = wallObj.GetComponentInChildren<Renderer>();
             if (rend == null) continue;

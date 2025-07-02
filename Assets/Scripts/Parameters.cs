@@ -12,18 +12,25 @@ public static class Parameters
     public static float floorSizeZ = UnitConverter.MetersToInches(7.4f); // in inches
 
     // weights
-    private static float w_clearanceViolation = 2.0f;
-    private static float w_circulation = 1.0f;
-    private static float w_pairwiseDistnace = 2.0f;
-    private static float w_pa = 2.0f;
-    private static float w_cd = 2.0f;
-    private static float w_ca = 2.0f;
-    private static float w_vd = 1.5f;
-    private static float w_fa = 2.5f;
-    private static float w_wa = 2.5f;
-    private static float w_sy = 1.0f;
-    private static float w_ef = 4.0f;
+    public static float w_clearanceViolation = 2.0f;
+    public static float w_circulation = 1.0f;
+    public static float w_pairwiseDistance = 2.0f;
+    public static float w_pairwiseAngle = 2.0f;
+    public static float w_conversationDistance = 2.0f;
+    public static float w_conversationAngle = 2.0f;
+    public static float w_balance = 1.5f;
+    public static float w_alignment = 2.5f;
+    public static float w_wallAlignment = 2.5f;
+    public static float w_symmetry = 1.0f;
+    public static float w_emphasis = 4.0f;
     
+    // for modifying layouts
+    public static float position = 1.0f; // 0.2
+    public static float rotation = 20f;
+    
+    // iterations of MCMC 2000
+    public static int iterations = 10;
+
 
 
 
