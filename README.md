@@ -10,14 +10,14 @@
 ## Usage
 
 ### Main Scene
-Use w, a, s, d to move the camera
-Move mouse around to angle camera
-Press esc to exit movement, and be able to click the buttons
-Click "Resume Movement" to move angle the camera again
+Move Camera: w, a, s, d
+Angle Camera: move mouse
+Exit Movement to click buttons: esc
+Angle the Camera Again: "Resume Movement"
 Click and drag the sphere to set the emphasis point
 Click "Create Chair" and "Create Table" to create those objects
 Click and drag to move them around
-Use q and e to rotate the objects
+Rotate objects: q, e
 Use buttons to set symmetry axis to x or z
 Click "Calculate" to run the MCMC program
 
