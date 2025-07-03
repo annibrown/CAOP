@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class Manager : MonoBehaviour
@@ -47,57 +48,34 @@ public class Manager : MonoBehaviour
         // compute cost of first layout
         floorGrid.UpdateTileColors(currentLayout);
         cost = Costs.TotalCost(currentLayout);
-        Debug.Log("First Layout Cost: " + cost);
 
         for (int i = 0; i < Parameters.iterations; i++)
         {
             // make new layout newLayout
             newLayout = DuplicateLayout(currentLayout);
+            
             // modify newLayout
-            if (newLayout.F.Count > 1)
-            {
-                modification = Random.Range(0, 3);
-            }
-            else
-            {
-                modification = Random.Range(0, 2);
-            }
-
+            modification = Random.Range(0, 2);
+            //modification = Parameters.modifications[i];
+            
             randomFurnitureIndex = Random.Range(0, newLayout.F.Count);
+            Debug.Log("Random Furniture Index: " + randomFurnitureIndex);
             randomFurniture = newLayout.F[randomFurnitureIndex];
+            //randomFurniture = newLayout.F[Parameters.fIndex[i]];
+            
             if (modification == 0)
             {
                 // move randomFurniture
-                randomFurniture.transform.position +=
-                    new Vector3(RandomGaussian(0f, Parameters.position), 0, RandomGaussian(0f, Parameters.position));
+                randomFurniture.transform.position += new Vector3(RandomGaussian(0f, Parameters.position), 0, RandomGaussian(0f, Parameters.position));
+                //randomFurniture.transform.position += new Vector3(Parameters.xPositions[i], 0, Parameters.zPositions[i]);
                 Debug.Log("Moved Furniture");
             }
             else if (modification == 1)
             {
                 // rotate randomFurniture
                 randomFurniture.transform.Rotate(0f, RandomGaussian(0f, Parameters.rotation), 0f);
+                //randomFurniture.transform.Rotate(0f, Parameters.rotations[i], 0f);
                 Debug.Log("Rotated Furniture");
-            }
-            else if (modification == 2)
-            {
-                // swap two furniture
-                swappedFurnitureIndex = Random.Range(0, newLayout.F.Count);
-                while (swappedFurnitureIndex == randomFurnitureIndex)
-                {
-                    swappedFurnitureIndex = Random.Range(0, newLayout.F.Count);
-                }
-
-                swappedFurniture = newLayout.F[swappedFurnitureIndex];
-
-                Vector3 posRandom = randomFurniture.transform.position;
-                Quaternion rotRandom = randomFurniture.transform.rotation;
-
-                randomFurniture.transform.position = swappedFurniture.transform.position;
-                randomFurniture.transform.rotation = swappedFurniture.transform.rotation;
-
-                swappedFurniture.transform.position = posRandom;
-                swappedFurniture.transform.rotation = rotRandom;
-                Debug.Log("Swapped Furniture");
             }
             else
             {
@@ -106,35 +84,35 @@ public class Manager : MonoBehaviour
 
             // compute cost of new layout, newCost
             newCost = Costs.TotalCost(newLayout);
-            float acceptanceProbability = Mathf.Min(1f, Density(newCost) / Density(cost));
             
-            // keep the better layout in currentLayout
-            if (Random.Range(0f, 1f) < acceptanceProbability)
+            // setting beta to 1
+            float densityRatio = Mathf.Exp(-newCost + cost);
+            float acceptanceProbability = Mathf.Min(1f, densityRatio);
+
+            // Store old layout reference BEFORE replacing
+            Layout oldLayout = currentLayout;
+
+            if (Random.value < acceptanceProbability)
             {
                 Debug.Log("LAYOUT ACCEPTED!");
-                Debug.Log("Accepted layout Cost: " + newCost);
-                // Clean up old layout GameObject
-                Destroy(currentLayout.gameObject); // Destroys old layout from scene
                 currentLayout = newLayout;
-                layoutGO = currentLayout.gameObject; // Track new layout GameObject
                 cost = newCost;
-                
-                Debug.Log("Accepted new layout at iteration " + i);
-                foreach (var f in currentLayout.F)
+                layoutGO = currentLayout.gameObject;
+    
+                // ✅ Now it's safe to destroy the previous layout
+                if (oldLayout != null && oldLayout != newLayout)
                 {
-                    Debug.Log("  Furniture at: " + f.transform.position);
+                    Destroy(oldLayout.gameObject);
                 }
-                
             }
             else
             {
-                // Rejected, discard new layout
-                Debug.Log("LAYOUT REJECTED!");
+                // ❌ Reject new layout
                 Destroy(newLayout.gameObject);
             }
-            newLayout.F.Clear(); // In case prefab was saved with children
 
             yield return new WaitForSeconds(0.25f);
+            //Debug.Log("4: currentLayout has " + currentLayout.F.Count + " items");
         }
     }
 
@@ -145,13 +123,6 @@ public class Manager : MonoBehaviour
         float randStdNormal = Mathf.Sqrt(-2.0f * Mathf.Log(u1)) * Mathf.Sin(2.0f * Mathf.PI * u2);
         return mean + stdDev * randStdNormal;
     }
-    
-    // setting beta to 1
-    // Z cancels out in MCMC later so we omit it
-    private float Density(float layoutCost)
-    {
-        return Mathf.Exp(-1 * layoutCost);
-    }
 
     private float Mcmc()
     {
@@ -161,19 +132,24 @@ public class Manager : MonoBehaviour
     
     public Layout DuplicateLayout(Layout original)
     {
-        GameObject newGO = Instantiate(layoutPrefab);
+        GameObject newGO = Instantiate(layoutPrefab); // layoutPrefab should be empty!
         Layout newLayout = newGO.GetComponent<Layout>();
+
+        newLayout.F = new List<GameObject>();
 
         foreach (GameObject f in original.F)
         {
-            GameObject copy = Instantiate(f, newGO.transform); // Parent to layout GameObject
+            GameObject copy = Instantiate(f, newGO.transform);
             newLayout.F.Add(copy);
         }
 
-        newLayout.R = original.R;
-
+        newLayout.R = original.R; // shared wall references
         return newLayout;
     }
+
+
+
+
 
 
     
