@@ -4,7 +4,7 @@
 
 1. Install Unity 6000.0.37f1 from the Unity Hub  
 2. Clone repository  
-3. In the Unity Hub, click "Add project from disk" and select the "Research" folder from the repository, then open the project with 6000.0.37f1. If it gives a warning or asks to open in safe mode, ignore.  
+3. In the Unity Hub, click "Add project from disk" and select the "CAOP" folder from the repository, then open the project with 6000.0.37f1. If it gives a warning or asks to open in safe mode, ignore.  
 4. No packages needed right now
 
 ## Usage
