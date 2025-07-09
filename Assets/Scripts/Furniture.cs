@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 public class Furniture : MonoBehaviour
 {
+    public GameObject prefabSource;
+    
     public List<Vector2Int> occupiedTiles = new List<Vector2Int>();
     public List<Vector2Int> radiusTiles = new List<Vector2Int>();
     

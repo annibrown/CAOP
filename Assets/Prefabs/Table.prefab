@@ -123,6 +123,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cbe4700e771081d41b5a2778f652cd1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  prefabSource: {fileID: 0}
   occupiedTiles: []
   radiusTiles: []
 --- !u!114 &1905206247712588096

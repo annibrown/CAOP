@@ -35,23 +35,56 @@ public class Costs : MonoBehaviour
         emphasisPoint = tempEmphasis;
     }
     
-    public static float TotalCost(Layout layout)
+    public static float TotalCost(Layout layout, int iteration = -1)
     {
-        float cost = (ClearanceViolation(layout) * Parameters.w_clearanceViolation)
-                     + (Circulation(layout) * Parameters.w_circulation)
-                     + (PairwiseDistance(layout) * Parameters.w_pairwiseDistance)
-                     + (PairwiseAngle(layout) * Parameters.w_pairwiseAngle)
-                     + (ConversationDistance(layout) * Parameters.w_conversationDistance)
-                     + (ConversationAngle(layout) * Parameters.w_conversationAngle)
-                     + (Balance(layout) * Parameters.w_balance)
-                     + (Alignment(layout) * Parameters.w_alignment)
-                     + (WallAlignment(layout) * Parameters.w_wallAlignment)
-                     + (Symmetry(layout) * Parameters.w_symmetry)
-                     + (Emphasis(layout) * Parameters.w_emphasis);
-        
-        Debug.Log("Total cost: " + cost);
-        return cost;
+        float clearance = ClearanceViolation(layout);
+        float circulation = Circulation(layout);
+        float pDist = PairwiseDistance(layout);
+        float pAngle = PairwiseAngle(layout);
+        float cDist = ConversationDistance(layout);
+        float cAngle = ConversationAngle(layout);
+        float balance = Balance(layout);
+        float align = Alignment(layout);
+        float wallAlign = WallAlignment(layout);
+        float symmetry = Symmetry(layout);
+        float emphasis = Emphasis(layout);
+
+        float total = clearance * Parameters.w_clearanceViolation +
+                      circulation * Parameters.w_circulation +
+                      pDist * Parameters.w_pairwiseDistance +
+                      pAngle * Parameters.w_pairwiseAngle +
+                      cDist * Parameters.w_conversationDistance +
+                      cAngle * Parameters.w_conversationAngle +
+                      balance * Parameters.w_balance +
+                      align * Parameters.w_alignment +
+                      wallAlign * Parameters.w_wallAlignment +
+                      symmetry * Parameters.w_symmetry +
+                      emphasis * Parameters.w_emphasis;
+
+        if (iteration >= 0)
+        {
+            var values = new Dictionary<string, float>
+            {
+                { "Total", total },
+                { "Clearance", clearance },
+                { "Circulation", circulation },
+                { "PairwiseDistance", pDist },
+                { "PairwiseAngle", pAngle },
+                { "ConversationDistance", cDist },
+                { "ConversationAngle", cAngle },
+                { "Balance", balance },
+                { "Alignment", align },
+                { "WallAlignment", wallAlign },
+                { "Symmetry", symmetry },
+                { "Emphasis", emphasis }
+            };
+
+            GameObject.FindFirstObjectByType<CostLogger>()?.Log(iteration, values);
+        }
+
+        return total;
     }
+
 
     // takes in a layout, composed of furniture F, walls R
     private static float ClearanceViolation(Layout layout)
@@ -154,7 +187,7 @@ public class Costs : MonoBehaviour
     {
         FloorGridGenerator grid = GameObject.FindFirstObjectByType<FloorGridGenerator>();
         int regionCount = grid.CountWalkableRegions();
-        //Debug.Log("Number of connected empty regions: " + regionCount);
+        //Debug.Log("circulation: " + (regionCount-1));
         return regionCount - 1;
     }
     
@@ -188,6 +221,7 @@ public class Costs : MonoBehaviour
                         Vector3 pointA = boundsA.ClosestPoint(boundsB.center);
                         Vector3 pointB = boundsB.ClosestPoint(boundsA.center);
                         distanceBetweenObjects = Vector3.Distance(pointA, pointB);
+                        //Debug.Log("distance between objects "+ distanceBetweenObjects);
                     }
 
                     float t = Tfunction(distanceBetweenObjects, m1, m2, 2);
@@ -195,7 +229,7 @@ public class Costs : MonoBehaviour
                 }
             }
         }
-
+        //Debug.Log("Pairwise Distance: " + pairwiseCost*-1);
         return pairwiseCost * -1;
     }
 
@@ -233,13 +267,14 @@ public class Costs : MonoBehaviour
                     Vector3 forwardChair = i.transform.forward;
                     Vector3 toTable = (j.transform.position - i.transform.position).normalized;
                     float angleToTable = Vector3.Angle(forwardChair, toTable);
+                    //Debug.Log("angle to table: " + angleToTable);
                     
                     pairwiseAngleCost += Mathf.Cos(angleToTable * Mathf.Deg2Rad);
                     //Debug.Log("this angle cost: " + pairwiseAngleCost);
                 }
             }
         }
-        //Debug.Log("Pairwise Angle: " + pairwiseAngleCost);
+        Debug.Log("Pairwise Angle: " + pairwiseAngleCost*-1);
         return pairwiseAngleCost * -1;
     }
 
@@ -263,7 +298,7 @@ public class Costs : MonoBehaviour
                 }
             }
         }
-        //Debug.Log("Total Conversation Distance: " + cdCost);
+        //Debug.Log("Total Conversation Distance: " + cdCost*-1);
         return cdCost * -1;
     }
 
@@ -286,13 +321,13 @@ public class Costs : MonoBehaviour
                     Vector3 forwardG = g.transform.forward;
                     Vector3 toF = (f.transform.position - g.transform.position).normalized;
                     float angleG = Vector3.Angle(forwardG, toF);
-                    
+                    //Debug.Log("c angles: " + angleF + " " + angleG);
                     caCost += (Mathf.Cos(angleF * Mathf.Deg2Rad) + 1) *
                               (Mathf.Cos(angleG * Mathf.Deg2Rad) + 1);
                 }
             }
         }
-        //Debug.Log("Conversation Angle: " + caCost);
+        //Debug.Log("Conversation Angle: " + caCost*-1);
         return caCost * -1;
     }
 
@@ -407,7 +442,7 @@ public class Costs : MonoBehaviour
                 alignmentCost += Mathf.Cos(4 * ((angleF * Mathf.Deg2Rad) - (angleG * Mathf.Deg2Rad)));
             }
         }
-        //Debug.Log("Alignment cost: " + alignmentCost);
+        //Debug.Log("Alignment cost: " + alignmentCost*-1);
         return alignmentCost * -1;
     }
     
@@ -462,7 +497,7 @@ public class Costs : MonoBehaviour
                 }
             }
         //}
-        //Debug.Log("Emphasis: " + emphasisCost);
+        //Debug.Log("Emphasis: " + emphasisCost*-1);
         return emphasisCost * -1;
     }
 
@@ -526,7 +561,7 @@ public class Costs : MonoBehaviour
             symmetryCost += max;
         }
         //}
-        //Debug.Log("Symmetry: " + symmetryCost);
+        //Debug.Log("Symmetry: " + symmetryCost*-1);
         //Debug.Log(reflectOverX == true ? "Reflect over X" : "Reflect over Z");
         return symmetryCost * -1;
     }
