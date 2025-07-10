@@ -25,7 +25,7 @@ public class FurnitureSpawner : MonoBehaviour
         // }
         
         // TESTING
-        Vector3 position = new Vector3(0.1f, 0.4f, -3.0f);
+        Vector3 position = new Vector3(0.1f, 0.4f, -3.0f); // 0, 0.4, -1.35
         GameObject newChair = Instantiate(
             chairToCreate,
             position,
@@ -40,11 +40,11 @@ public class FurnitureSpawner : MonoBehaviour
         }
         Manager.currentLayout.F.Add(newChair);
         
-        position = new Vector3(2.0f, 0.4f, -0.2f);
+        position = new Vector3(2.0f, 0.4f, 0.0f); // 1.2, 0.4, 0
         newChair = Instantiate(
             chairToCreate,
             position,
-            Quaternion.Euler(0, 0, 0),
+            Quaternion.Euler(0, 0, 0), // -90
             Manager.currentLayout.transform
         );
         newChair.tag = "Chair";
@@ -55,11 +55,11 @@ public class FurnitureSpawner : MonoBehaviour
         }
         Manager.currentLayout.F.Add(newChair);
         
-        position = new Vector3(-2.0f, 0.4f, 0.0f);
+        position = new Vector3(-2.0f, 0.4f, 0.2f); // -1.2, 0.4, 0
         newChair = Instantiate(
             chairToCreate,
             position,
-            Quaternion.Euler(0, 0, 0),
+            Quaternion.Euler(0, 0, 0), // 90
             Manager.currentLayout.transform
         );
         newChair.tag = "Chair";
@@ -70,7 +70,7 @@ public class FurnitureSpawner : MonoBehaviour
         }
         Manager.currentLayout.F.Add(newChair);
         
-        position = new Vector3(-0.1f, 0.4f, 3.0f);
+        position = new Vector3(0.1f, 0.4f, 3.0f);
         newChair = Instantiate(
             chairToCreate,
             position,
@@ -90,8 +90,8 @@ public class FurnitureSpawner : MonoBehaviour
         {
             GameObject newTable = Instantiate(
                 tableToCreate,
-                new Vector3(0.0f, 0.2f, 1.0f),
-                Quaternion.identity,
+                new Vector3(1.0f, 0.2f, 2.0f),
+                Quaternion.Euler(0, 0, 0),
                 Manager.currentLayout.transform
             );
             newTable.tag = "Table";

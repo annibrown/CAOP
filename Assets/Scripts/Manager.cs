@@ -9,11 +9,13 @@ public class Manager : MonoBehaviour
     public FloorGridGenerator floorGrid; // assign this in the Inspector
     private float cost;
     private float newCost;
+    private float bestCost;
 
     public GameObject layoutPrefab;
     
     public static Layout currentLayout;
     public static Layout newLayout;
+    public static Layout bestLayout;
 
     private int modification;
     private GameObject randomFurniture;
@@ -58,6 +60,10 @@ public class Manager : MonoBehaviour
         // compute cost of first layout
         floorGrid.UpdateTileColors(currentLayout);
         cost = Costs.TotalCost(currentLayout);
+        
+        // set first layout as best layout
+        bestLayout = currentLayout;
+        bestCost = cost;
 
         for (int i = 0; i < Parameters.iterations; i++)
         {
@@ -81,6 +87,9 @@ public class Manager : MonoBehaviour
             x = Mathf.Max(1, x);
             int currentIndex = (i / x) % furnitureCount;
             randomFurniture = newLayout.F[currentIndex];
+            
+            // TESTING ONE FURNITURE AT A TIME
+            //randomFurniture = newLayout.F[4];
             
             if (modification == 0)
             {
@@ -196,7 +205,14 @@ public class Manager : MonoBehaviour
             //currentLayout.gameObject.SetActive(false);
             //yield return new WaitForSeconds(0.25f);
             
-            
+            // check if new cost is better than best cost
+            if (newCost < bestCost)
+            {
+                Layout oldBestLayout = bestLayout;
+                bestCost = newCost;
+                bestLayout = newLayout;
+                Destroy(oldBestLayout.gameObject);
+            }
 
             if (Random.value < acceptanceProbability)
             {
@@ -207,10 +223,20 @@ public class Manager : MonoBehaviour
                 
                 // Set a name or log to confirm selection
                 cost = newCost;
+                
+                var values = new Dictionary<string, float>
+                {
+                    { "Cost", newCost },
+                    { "Acceptance Probability", acceptanceProbability }
+                };
+                
+                // ✅ Only log accepted layouts
+                FindFirstObjectByType<CostLogger>().Log(i, values);
+                
                 layoutGO = currentLayout.gameObject;
     
                 // ✅ Now it's safe to destroy the previous layout
-                if (oldLayout != null && oldLayout != currentLayout)
+                if (oldLayout != null && oldLayout != currentLayout && oldLayout != bestLayout)
                 {
                     Destroy(oldLayout.gameObject);
                 }
@@ -224,8 +250,11 @@ public class Manager : MonoBehaviour
                 Destroy(newLayout.gameObject);
             }
 
-            yield return new WaitForSeconds(0.01f);
+            yield return new WaitForSeconds(0.000001f);
         }
+        
+        // destroy current layout, so only show best layout
+        Destroy(currentLayout.gameObject);
     }
 
     public static float RandomGaussian(float mean, float stdDev)

@@ -39,16 +39,18 @@ public class Costs : MonoBehaviour
     {
         float clearance = ClearanceViolation(layout);
         float circulation = Circulation(layout);
-        float pDist = PairwiseDistance(layout);
-        float pAngle = PairwiseAngle(layout);
-        float cDist = ConversationDistance(layout);
-        float cAngle = ConversationAngle(layout);
-        float balance = Balance(layout);
-        float align = Alignment(layout);
-        float wallAlign = WallAlignment(layout);
-        float symmetry = Symmetry(layout);
-        float emphasis = Emphasis(layout);
+        float pDist = PairwiseDistance(layout);     // important
+        float pAngle = PairwiseAngle(layout);       // important
+        float cDist = ConversationDistance(layout); 
+        float cAngle = ConversationAngle(layout);   
+        float balance = Balance(layout);            // important
+        float align = Alignment(layout);            // important
+        float wallAlign = WallAlignment(layout);    // important
+        float symmetry = Symmetry(layout);          // important
+        float emphasis = Emphasis(layout);          // important
 
+        //float total = symmetry * Parameters.w_symmetry;
+        
         float total = clearance * Parameters.w_clearanceViolation +
                       circulation * Parameters.w_circulation +
                       pDist * Parameters.w_pairwiseDistance +
@@ -61,26 +63,26 @@ public class Costs : MonoBehaviour
                       symmetry * Parameters.w_symmetry +
                       emphasis * Parameters.w_emphasis;
 
-        if (iteration >= 0)
-        {
-            var values = new Dictionary<string, float>
-            {
-                { "Total", total },
-                { "Clearance", clearance },
-                { "Circulation", circulation },
-                { "PairwiseDistance", pDist },
-                { "PairwiseAngle", pAngle },
-                { "ConversationDistance", cDist },
-                { "ConversationAngle", cAngle },
-                { "Balance", balance },
-                { "Alignment", align },
-                { "WallAlignment", wallAlign },
-                { "Symmetry", symmetry },
-                { "Emphasis", emphasis }
-            };
-
-            GameObject.FindFirstObjectByType<CostLogger>()?.Log(iteration, values);
-        }
+        // if (iteration >= 0)
+        // {
+        //     var values = new Dictionary<string, float>
+        //     {
+        //         { "Total", total },
+        //         { "Clearance", clearance },
+        //         { "Circulation", circulation },
+        //         { "PairwiseDistance", pDist },
+        //         { "PairwiseAngle", pAngle },
+        //         { "ConversationDistance", cDist },
+        //         { "ConversationAngle", cAngle },
+        //         { "Balance", balance },
+        //         { "Alignment", align },
+        //         { "WallAlignment", wallAlign },
+        //         { "Symmetry", symmetry },
+        //         { "Emphasis", emphasis }
+        //     };
+        //
+        //     GameObject.FindFirstObjectByType<CostLogger>()?.Log(iteration, values);
+        // }
 
         return total;
     }
@@ -274,7 +276,7 @@ public class Costs : MonoBehaviour
                 }
             }
         }
-        Debug.Log("Pairwise Angle: " + pairwiseAngleCost*-1);
+        //Debug.Log("Pairwise Angle: " + pairwiseAngleCost*-1);
         return pairwiseAngleCost * -1;
     }
 
@@ -538,12 +540,12 @@ public class Costs : MonoBehaviour
                 }
             }
         }
-        
         //foreach (List<GameObject> group in Layout.G)
         //{
         for (int i = 0; i < layout.F.Count; i++)
         {
-            max = -1000;
+            max = 0;
+            bool maxAssigned = false;
             GameObject f = layout.F[i];
             for (int j = 0; j < layout.F.Count; j++)
             {
@@ -551,18 +553,21 @@ public class Costs : MonoBehaviour
                 if (f.CompareTag(g.tag) && (i != j))
                 {
                     float newMax = SFunction(f, g, emphasisPoint);
-                    if (newMax > max)
+                    if (newMax > max || maxAssigned == false)
                     {
                         max = newMax;
+                        maxAssigned = true;
                     }
                 }
-                
             }
-            symmetryCost += max;
+            if (maxAssigned)
+            {
+                symmetryCost += max; 
+            }
         }
         //}
-        //Debug.Log("Symmetry: " + symmetryCost*-1);
-        //Debug.Log(reflectOverX == true ? "Reflect over X" : "Reflect over Z");
+        Debug.Log("Symmetry: " + symmetryCost*-1);
+        Debug.Log(reflectOverX == true ? "Reflect over X" : "Reflect over Z");
         return symmetryCost * -1;
     }
 
