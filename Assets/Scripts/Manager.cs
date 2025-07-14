@@ -59,7 +59,9 @@ public class Manager : MonoBehaviour
         
         // compute cost of first layout
         floorGrid.UpdateTileColors(currentLayout);
-        cost = Costs.TotalCost(currentLayout);
+        
+        var costComponents = Costs.ComputeAllCosts(currentLayout);
+        cost = costComponents["Total"];
         
         // set first layout as best layout
         bestLayout = currentLayout;
@@ -191,7 +193,9 @@ public class Manager : MonoBehaviour
             
             // compute cost of new layout, newCost
             floorGrid.UpdateTileColors(newLayout);
-            newCost = Costs.TotalCost(newLayout, i);
+            
+            var newCostComponents = Costs.ComputeAllCosts(newLayout);
+            newCost = newCostComponents["Total"];
             
             // setting beta to 1
             float densityRatio = Mathf.Exp(-newCost + cost);
@@ -224,14 +228,11 @@ public class Manager : MonoBehaviour
                 // Set a name or log to confirm selection
                 cost = newCost;
                 
-                var values = new Dictionary<string, float>
-                {
-                    { "Cost", newCost },
-                    { "Acceptance Probability", acceptanceProbability }
-                };
+                newCostComponents["AcceptanceProbability"] = acceptanceProbability;
+                newCostComponents["Iteration"] = i;
                 
                 // ✅ Only log accepted layouts
-                FindFirstObjectByType<CostLogger>().Log(i, values);
+                FindFirstObjectByType<CostLogger>().Log(i, newCostComponents);
                 
                 layoutGO = currentLayout.gameObject;
     

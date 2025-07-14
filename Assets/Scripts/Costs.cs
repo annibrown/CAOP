@@ -3,7 +3,6 @@ using UnityEngine;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEditor.Searcher;
-using UnityEngine.ProBuilder;
 
 public class Costs : MonoBehaviour
 {
@@ -35,21 +34,19 @@ public class Costs : MonoBehaviour
         emphasisPoint = tempEmphasis;
     }
     
-    public static float TotalCost(Layout layout, int iteration = -1)
+    public static Dictionary<string, float> ComputeAllCosts(Layout layout)
     {
         float clearance = ClearanceViolation(layout);
         float circulation = Circulation(layout);
-        float pDist = PairwiseDistance(layout);     // important
-        float pAngle = PairwiseAngle(layout);       // important
-        float cDist = ConversationDistance(layout); 
-        float cAngle = ConversationAngle(layout);   
-        float balance = Balance(layout);            // important
-        float align = Alignment(layout);            // important
-        float wallAlign = WallAlignment(layout);    // important
-        float symmetry = Symmetry(layout);          // important
-        float emphasis = Emphasis(layout);          // important
-
-        //float total = symmetry * Parameters.w_symmetry;
+        float pDist = PairwiseDistance(layout);
+        float pAngle = PairwiseAngle(layout);
+        float cDist = ConversationDistance(layout);
+        float cAngle = ConversationAngle(layout);
+        float balance = Balance(layout);
+        float align = Alignment(layout);
+        float wallAlign = WallAlignment(layout);
+        float symmetry = Symmetry(layout);
+        float emphasis = Emphasis(layout);
         
         float total = clearance * Parameters.w_clearanceViolation +
                       circulation * Parameters.w_circulation +
@@ -63,30 +60,22 @@ public class Costs : MonoBehaviour
                       symmetry * Parameters.w_symmetry +
                       emphasis * Parameters.w_emphasis;
 
-        // if (iteration >= 0)
-        // {
-        //     var values = new Dictionary<string, float>
-        //     {
-        //         { "Total", total },
-        //         { "Clearance", clearance },
-        //         { "Circulation", circulation },
-        //         { "PairwiseDistance", pDist },
-        //         { "PairwiseAngle", pAngle },
-        //         { "ConversationDistance", cDist },
-        //         { "ConversationAngle", cAngle },
-        //         { "Balance", balance },
-        //         { "Alignment", align },
-        //         { "WallAlignment", wallAlign },
-        //         { "Symmetry", symmetry },
-        //         { "Emphasis", emphasis }
-        //     };
-        //
-        //     GameObject.FindFirstObjectByType<CostLogger>()?.Log(iteration, values);
-        // }
-
-        return total;
+        return new Dictionary<string, float>
+        {
+            { "Total", total },
+            { "Clearance", clearance },
+            { "Circulation", circulation },
+            { "PairwiseDistance", pDist },
+            { "PairwiseAngle", pAngle },
+            { "ConversationDistance", cDist },
+            { "ConversationAngle", cAngle },
+            { "Balance", balance },
+            { "Alignment", align },
+            { "WallAlignment", wallAlign },
+            { "Symmetry", symmetry },
+            { "Emphasis", emphasis }
+        };
     }
-
 
     // takes in a layout, composed of furniture F, walls R
     private static float ClearanceViolation(Layout layout)

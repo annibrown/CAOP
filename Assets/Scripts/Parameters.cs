@@ -10,20 +10,20 @@ public static class Parameters
     public static float floorSizeZ = UnitConverter.MetersToInches(7.4f); // in inches
 
     // weights                                          ORIGINAL VALUES
-    public static float w_clearanceViolation = 2.0f;    // 2
-    public static float w_circulation = 5.0f;           // 1
-    public static float w_pairwiseDistance = 2.0f;      // 2
+    public static float w_clearanceViolation = 6.0f;    // 2    // 4        2 < x < 10
+    public static float w_circulation = 5.0f;           // 1    
+    public static float w_pairwiseDistance = 2.0f;      // 2    // 3        2 < x
     public static float w_pairwiseAngle = 5.0f;         // 2
-    public static float w_conversationDistance = 2.0f;  // 2
-    public static float w_conversationAngle = 6.0f;     // 2
-    public static float w_balance = 1.0f;               // 1.5
-    public static float w_alignment = 0.5f;             // 2.5
-    public static float w_wallAlignment = 1.0f;         // 2.5
+    public static float w_conversationDistance = 4.0f;  // 2    // 4        3 < x
+    public static float w_conversationAngle = 6.0f;     // 2    // 7        6 < x
+    public static float w_balance = 1.5f;               // 1.5              1 < x
+    public static float w_alignment = 2.5f;             // 2.5              1 < x
+    public static float w_wallAlignment = 2.5f;         // 2.5              1 < x
     public static float w_symmetry = 1.0f;              // 1
-    public static float w_emphasis = 1.0f;              // 4
+    public static float w_emphasis = 1.0f;              // 4                1 < x
     
     // for modifying layouts
-    public static float position = 0.2f;    // 0.2
+    public static float position = 0.2f;    // 0.2                          0.1 < x < 0.3
     public static float rotation = 5f;     // 20
     
     // testing

@@ -7,25 +7,37 @@ public class CostLogger : MonoBehaviour
 {
     private StringBuilder csvContent = new StringBuilder();
     private string filePath;
+    private bool headerWritten = false;
 
     void Awake()
     {
         filePath = Path.Combine(Application.dataPath, "cost_log.csv");
-        //csvContent.AppendLine("Iteration,Total,Clearance,Circulation,PairwiseDistance,PairwiseAngle,ConversationDistance,ConversationAngle,Balance,Alignment,WallAlignment,Symmetry,Emphasis");
-        csvContent.AppendLine("Iteration,Cost,Acceptance Probability");
-        File.WriteAllText(filePath, csvContent.ToString());  // initialize
+
+        // This clears the file initially (optional)
+        File.WriteAllText(filePath, string.Empty);
     }
 
     public void Log(int iteration, Dictionary<string, float> values)
     {
-        // string line = $"{iteration},{values["Total"]},{values["Clearance"]},{values["Circulation"]},{values["PairwiseDistance"]},{values["PairwiseAngle"]},{values["ConversationDistance"]},{values["ConversationAngle"]},{values["Balance"]},{values["Alignment"]},{values["WallAlignment"]},{values["Symmetry"]},{values["Emphasis"]}";
-        // File.AppendAllText(filePath, line + "\n");
-        
-        string line = $"{iteration},{values["Cost"]},{values["Acceptance Probability"]}";
-        File.AppendAllText(filePath, line + "\n");
+        // If header hasn't been written yet, do it now
+        if (!headerWritten)
+        {
+            List<string> headers = new List<string>(values.Keys);
+            csvContent.AppendLine(string.Join(",", headers));
+            headerWritten = true;
+        }
 
+        // Convert values to CSV line
+        List<string> lineValues = new List<string>();
+        foreach (var key in values.Keys)
+        {
+            lineValues.Add(values[key].ToString("F6"));  // 6 decimal places
+        }
 
+        csvContent.AppendLine(string.Join(",", lineValues));
 
+        // Write to file after each entry
+        File.WriteAllText(filePath, csvContent.ToString());
     }
 }
 
