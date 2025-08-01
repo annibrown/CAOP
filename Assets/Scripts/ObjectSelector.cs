@@ -13,24 +13,24 @@ public class ObjectSelector : MonoBehaviour
 
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                Debug.Log("Ray hit: " + hit.collider.name + " (GameObject: " + hit.collider.gameObject.name + ")");
+                //Debug.Log("Ray hit: " + hit.collider.name + " (GameObject: " + hit.collider.gameObject.name + ")");
 
                 // Try to find a DraggableObject on the parent of the clicked collider
                 DraggableObject draggable = hit.collider.GetComponentInParent<DraggableObject>();
                 if (draggable != null)
                 {
-                    Debug.Log("✅ Selected: " + draggable.name);
+                    //Debug.Log("✅ Selected: " + draggable.name);
                     Select(draggable);
                 }
                 else
                 {
-                    Debug.LogWarning("❌ No DraggableObject found on parent of: " + hit.collider.name);
+                    //Debug.LogWarning("❌ No DraggableObject found on parent of: " + hit.collider.name);
                     Deselect();
                 }
             }
             else
             {
-                Debug.Log("Raycast hit nothing.");
+                //Debug.Log("Raycast hit nothing.");
                 Deselect();
             }
         }

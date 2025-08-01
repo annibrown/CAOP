@@ -76,7 +76,7 @@ public class CameraController : MonoBehaviour
         if (resumeButton != null)
             resumeButton.SetActive(!locked); // show when unlocked, hide when locked
 
-        Debug.Log("Cursor is now " + (locked ? "LOCKED" : "UNLOCKED"));
+        //Debug.Log("Cursor is now " + (locked ? "LOCKED" : "UNLOCKED"));
     }
 
     void HandleMouseLook()

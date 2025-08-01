@@ -6,6 +6,7 @@ MonoImporter:
   defaultReferences:
   - chairToCreate: {fileID: 4623663433535787681, guid: 0bacca1035b5b714098135085cfc43d1, type: 3}
   - tableToCreate: {fileID: 8080381232097320565, guid: 9aa5064fe1fa03542b89de524169ae2b, type: 3}
+  - emphasisToCreate: {fileID: 7821544578304550326, guid: 070f579386387e543a9ff583e50d09cf, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

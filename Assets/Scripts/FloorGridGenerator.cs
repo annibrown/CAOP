@@ -4,8 +4,8 @@ using System.Collections.Generic;
 public class FloorGridGenerator : MonoBehaviour
 {
     public GameObject tilePrefab;
-    public int rows = Mathf.RoundToInt(UnitConverter.InchesToMeters(Parameters.floorSizeZ) * 10.0f); // z
-    public int cols = Mathf.RoundToInt(UnitConverter.InchesToMeters(Parameters.floorSizeX) * 10.0f); // x
+    public int rows = Mathf.RoundToInt(Parameters.floorSizeZ * 10.0f); // z
+    public int cols = Mathf.RoundToInt(Parameters.floorSizeX * 10.0f); // x
     public float tileSize = 0.1f;
     public Material defaultMaterial;
     public Material highlightMaterial;

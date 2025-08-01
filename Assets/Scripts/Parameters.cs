@@ -6,21 +6,35 @@ public static class Parameters
     public static int numberOfChairs = 4;
     public static int numberOfTables = 1;
 
-    public static float floorSizeX = UnitConverter.MetersToInches(5.9f); // in inches
-    public static float floorSizeZ = UnitConverter.MetersToInches(7.4f); // in inches
+    public static int numberOfGroups = 2;
+
+    public static float floorSizeX = 7.0f; // in meters
+    public static float floorSizeZ = 9.0f; // in meters
 
     // weights                                          ORIGINAL VALUES
-    public static float w_clearanceViolation = 6.0f;    // 2    // 4        2 < x < 10
-    public static float w_circulation = 5.0f;           // 1    
-    public static float w_pairwiseDistance = 2.0f;      // 2    // 3        2 < x
-    public static float w_pairwiseAngle = 5.0f;         // 2
-    public static float w_conversationDistance = 4.0f;  // 2    // 4        3 < x
-    public static float w_conversationAngle = 6.0f;     // 2    // 7        6 < x
-    public static float w_balance = 1.5f;               // 1.5              1 < x
-    public static float w_alignment = 2.5f;             // 2.5              1 < x
-    public static float w_wallAlignment = 2.5f;         // 2.5              1 < x
-    public static float w_symmetry = 1.0f;              // 1
-    public static float w_emphasis = 1.0f;              // 4                1 < x
+    // public static float w_clearanceViolation = 6.0f;    // 2    // 4        2 < x < 10
+    // public static float w_circulation = 5.0f;           // 1    
+    // public static float w_pairwiseDistance = 2.0f;      // 2    // 3        2 < x
+    // public static float w_pairwiseAngle = 5.0f;         // 2
+    // public static float w_conversationDistance = 2.0f;  // 2    // 4        3 < x
+    // public static float w_conversationAngle = 6.0f;     // 2    // 7        6 < x
+    // public static float w_balance = 2.0f;               // 1.5              1 < x
+    // public static float w_alignment = 2.5f;             // 2.5              1 < x
+    // public static float w_wallAlignment = 2.5f;         // 2.5              1 < x
+    // public static float w_symmetry = 1.0f;              // 1
+    // public static float w_emphasis = 2.0f;              // 4                1 < x
+    
+    public static float w_clearanceViolation = 3.0f;    // 2        // 2
+    public static float w_circulation = 5.0f;           // 1        // 5
+    public static float w_pairwiseDistance = 3.0f;      // 2        // 2
+    public static float w_pairwiseAngle = 5.0f;         // 2        // 5
+    public static float w_conversationDistance = 2.0f;  // 2        // 2
+    public static float w_conversationAngle = 6.0f;     // 2        // 2
+    public static float w_balance = 1.0f;               // 1.5      // 0.5
+    public static float w_alignment = 1.0f;             // 2.5      // 1
+    public static float w_wallAlignment = 1.0f;         // 2.5      // 1
+    public static float w_symmetry = 1.0f;              // 1        // 1
+    public static float w_emphasis = 2.0f;              // 4        // 1
     
     // for modifying layouts
     public static float position = 0.2f;    // 0.2                          0.1 < x < 0.3
@@ -47,6 +61,8 @@ public static class Parameters
     // for cycling through furniture to modify
     public static int roundsPerObject = 10;
 
+    // Max distance to snap position at the end
+    public static float maxDist = 0.5f;
 
 
 

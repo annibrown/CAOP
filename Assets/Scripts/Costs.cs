@@ -22,20 +22,26 @@ public class Costs : MonoBehaviour
     public GameObject rightWall;
 
     private static float distanceBetweenObjects;
-
-    public GameObject tempEmphasis;
     
-    public static GameObject emphasisPoint;
     public static bool reflectOverX = true;
+    public static bool reflectOverZ = true;
     public static bool onWall = false;
-
+    
+    private static Bounds roomBounds;
+    
     void Awake()
     {
-        emphasisPoint = tempEmphasis;
+        float roomWidth = Parameters.floorSizeX;
+        float roomDepth = Parameters.floorSizeZ;
+
+        // Centered at (0, 0)
+        roomBounds = new Bounds(Vector3.zero, new Vector3(roomWidth, 10f, roomDepth));
     }
     
     public static Dictionary<string, float> ComputeAllCosts(Layout layout)
     {
+        Physics.SyncTransforms();
+        
         float clearance = ClearanceViolation(layout);
         float circulation = Circulation(layout);
         float pDist = PairwiseDistance(layout);
@@ -48,6 +54,18 @@ public class Costs : MonoBehaviour
         float symmetry = Symmetry(layout);
         float emphasis = Emphasis(layout);
         
+        // Debug.Log("Clearance: " + clearance);
+        // Debug.Log("Circulation: " + circulation);
+        // Debug.Log("Pairwise Distance: " + pDist);
+        // Debug.Log("Pairwise Angle: " + pAngle);
+        // Debug.Log("Conversation Distance: " + cDist);
+        // Debug.Log("Conversation Angle: " + cAngle);
+        // Debug.Log("Balance: " + balance);
+        // Debug.Log("Align: " + align);
+        // Debug.Log("Wall Align: " + wallAlign);
+        // Debug.Log("Symmetry: " + symmetry);
+        // Debug.Log("Emphasis: " + emphasis);
+        
         float total = clearance * Parameters.w_clearanceViolation +
                       circulation * Parameters.w_circulation +
                       pDist * Parameters.w_pairwiseDistance +
@@ -59,6 +77,8 @@ public class Costs : MonoBehaviour
                       wallAlign * Parameters.w_wallAlignment +
                       symmetry * Parameters.w_symmetry +
                       emphasis * Parameters.w_emphasis;
+        
+        Debug.Log("Cost: " + total);
 
         return new Dictionary<string, float>
         {
@@ -125,9 +145,8 @@ public class Costs : MonoBehaviour
         }
 
         // --- STEP 2: Furniture vs Room Boundary ---
-        float roomWidth = UnitConverter.InchesToMeters(Parameters.floorSizeX);
-        float roomDepth = UnitConverter.InchesToMeters(Parameters.floorSizeZ);
-        Bounds roomBounds = new Bounds(Vector3.zero, new Vector3(roomWidth, 10f, roomDepth));
+        Bounds bounds = roomBounds;
+        //Debug.Log($"[ROOM] Center: {roomBounds.center}, Size: {roomBounds.size}, Min: {roomBounds.min}, Max: {roomBounds.max}");
 
         foreach (GameObject obj in furniture)
         {
@@ -186,37 +205,40 @@ public class Costs : MonoBehaviour
     {
         pairwiseCost = 0;
 
-        for (int i = 0; i < layout.F.Count; i++)
+        foreach (List<GameObject> group in layout.G)
         {
-            for (int j = i + 1; j < layout.F.Count; j++)
+            for (int i = 0; i < group.Count; i++)
             {
-                if ((layout.F[i].CompareTag("Chair") && layout.F[j].CompareTag("Table")) ||
-                    (layout.F[i].CompareTag("Table") && layout.F[j].CompareTag("Chair")))
+                for (int j = i + 1; j < group.Count; j++)
                 {
-                    float m1 = UnitConverter.InchesToMeters(16.0f);
-                    float m2 = UnitConverter.InchesToMeters(18.0f);
-
-                    Renderer rendA = layout.F[i].GetComponentInChildren<Renderer>();
-                    Renderer rendB = layout.F[j].GetComponentInChildren<Renderer>();
-                    if (rendA == null || rendB == null) continue;
-
-                    Bounds boundsA = rendA.bounds;
-                    Bounds boundsB = rendB.bounds;
-
-                    if (boundsA.Intersects(boundsB))
+                    if ((group[i].CompareTag("Chair") && group[j].CompareTag("Table")) ||
+                        (group[i].CompareTag("Table") && group[j].CompareTag("Chair")))
                     {
-                        distanceBetweenObjects = 0f;
-                    }
-                    else
-                    {
-                        Vector3 pointA = boundsA.ClosestPoint(boundsB.center);
-                        Vector3 pointB = boundsB.ClosestPoint(boundsA.center);
-                        distanceBetweenObjects = Vector3.Distance(pointA, pointB);
-                        //Debug.Log("distance between objects "+ distanceBetweenObjects);
-                    }
+                        float m1 = UnitConverter.InchesToMeters(16.0f);
+                        float m2 = UnitConverter.InchesToMeters(18.0f);
 
-                    float t = Tfunction(distanceBetweenObjects, m1, m2, 2);
-                    pairwiseCost += t;
+                        Renderer rendA = group[i].GetComponentInChildren<Renderer>();
+                        Renderer rendB = group[j].GetComponentInChildren<Renderer>();
+                        if (rendA == null || rendB == null) continue;
+
+                        Bounds boundsA = rendA.bounds;
+                        Bounds boundsB = rendB.bounds;
+
+                        if (boundsA.Intersects(boundsB))
+                        {
+                            distanceBetweenObjects = 0f;
+                        }
+                        else
+                        {
+                            Vector3 pointA = boundsA.ClosestPoint(boundsB.center);
+                            Vector3 pointB = boundsB.ClosestPoint(boundsA.center);
+                            distanceBetweenObjects = Vector3.Distance(pointA, pointB);
+                            //Debug.Log("distance between objects "+ distanceBetweenObjects);
+                        }
+
+                        float t = Tfunction(distanceBetweenObjects, m1, m2, 2);
+                        pairwiseCost += t;
+                    }
                 }
             }
         }
@@ -247,21 +269,24 @@ public class Costs : MonoBehaviour
     private static float PairwiseAngle(Layout layout)
     {
         float pairwiseAngleCost = 0;
-        
-        foreach (GameObject i in layout.F)
+
+        foreach (List<GameObject> group in layout.G)
         {
-            foreach (GameObject j in layout.F)
+            foreach (GameObject i in group)
             {
-                if ((i.CompareTag("Chair") && j.CompareTag("Table")))
+                foreach (GameObject j in group)
                 {
-                    // make sure table is in front of chair
-                    Vector3 forwardChair = i.transform.forward;
-                    Vector3 toTable = (j.transform.position - i.transform.position).normalized;
-                    float angleToTable = Vector3.Angle(forwardChair, toTable);
-                    //Debug.Log("angle to table: " + angleToTable);
+                    if ((i.CompareTag("Chair") && j.CompareTag("Table")))
+                    {
+                        // make sure table is in front of chair
+                        Vector3 forwardChair = i.transform.forward;
+                        Vector3 toTable = (j.transform.position - i.transform.position).normalized;
+                        float angleToTable = Vector3.Angle(forwardChair, toTable);
+                        //Debug.Log("angle to table: " + angleToTable);
                     
-                    pairwiseAngleCost += Mathf.Cos(angleToTable * Mathf.Deg2Rad);
-                    //Debug.Log("this angle cost: " + pairwiseAngleCost);
+                        pairwiseAngleCost += Mathf.Cos(angleToTable * Mathf.Deg2Rad);
+                        //Debug.Log("this angle cost: " + pairwiseAngleCost);
+                    }
                 }
             }
         }
@@ -274,21 +299,26 @@ public class Costs : MonoBehaviour
     private static float ConversationDistance(Layout layout)
     {
         cdCost = 0;
-        for (int i = 0; i < layout.F.Count; i++)
+
+        foreach (List<GameObject> group in layout.G)
         {
-            for (int j = i + 1; j < layout.F.Count; j++)
+            for (int i = 0; i < group.Count; i++)
             {
-                // if both are seats
-                if (layout.F[i].CompareTag("Chair") && layout.F[j].CompareTag("Chair"))
+                for (int j = i + 1; j < group.Count; j++)
                 {
-                    distanceBetweenObjects = Vector3.Distance(layout.F[i].transform.position, layout.F[j].transform.position);
-                    //Debug.Log("Distance(for cd): " + distanceBetweenObjects);
-                    float t = Tfunction(distanceBetweenObjects, UnitConverter.InchesToMeters(4.0f * 12.0f), UnitConverter.InchesToMeters(8.0f * 12.0f), 2);
-                    cdCost += t;
-                    //Debug.Log("cd Cost: " + t);
+                    // if both are seats
+                    if (group[i].CompareTag("Chair") && group[j].CompareTag("Chair"))
+                    {
+                        distanceBetweenObjects = Vector3.Distance(group[i].transform.position, group[j].transform.position);
+                        //Debug.Log("Distance(for cd): " + distanceBetweenObjects);
+                        float t = Tfunction(distanceBetweenObjects, UnitConverter.InchesToMeters(4.0f * 12.0f), UnitConverter.InchesToMeters(8.0f * 12.0f), 2);
+                        cdCost += t;
+                        //Debug.Log("cd Cost: " + t);
+                    }
                 }
             }
         }
+        
         //Debug.Log("Total Conversation Distance: " + cdCost*-1);
         return cdCost * -1;
     }
@@ -296,28 +326,33 @@ public class Costs : MonoBehaviour
     private static float ConversationAngle(Layout layout)
     {
         caCost = 0;
-        for (int i = 0; i < layout.F.Count; i++)
+        
+        foreach (List<GameObject> group in layout.G)
         {
-            for (int j = i + 1; j < layout.F.Count; j++)
+            for (int i = 0; i < group.Count; i++)
             {
-                // if both are seats
-                if (layout.F[i].CompareTag("Chair") && layout.F[j].CompareTag("Chair"))
+                for (int j = i + 1; j < group.Count; j++)
                 {
-                    GameObject f = layout.F[i];
-                    GameObject g = layout.F[j];
-                    Vector3 forwardF = f.transform.forward;
-                    Vector3 toG = (g.transform.position - f.transform.position).normalized;
-                    float angleF = Vector3.Angle(forwardF, toG);
+                    // if both are seats
+                    if (group[i].CompareTag("Chair") && group[j].CompareTag("Chair"))
+                    {
+                        GameObject f = group[i];
+                        GameObject g = group[j];
+                        Vector3 forwardF = f.transform.forward;
+                        Vector3 toG = (g.transform.position - f.transform.position).normalized;
+                        float angleF = Vector3.Angle(forwardF, toG);
 
-                    Vector3 forwardG = g.transform.forward;
-                    Vector3 toF = (f.transform.position - g.transform.position).normalized;
-                    float angleG = Vector3.Angle(forwardG, toF);
-                    //Debug.Log("c angles: " + angleF + " " + angleG);
-                    caCost += (Mathf.Cos(angleF * Mathf.Deg2Rad) + 1) *
-                              (Mathf.Cos(angleG * Mathf.Deg2Rad) + 1);
+                        Vector3 forwardG = g.transform.forward;
+                        Vector3 toF = (f.transform.position - g.transform.position).normalized;
+                        float angleG = Vector3.Angle(forwardG, toF);
+                        //Debug.Log("c angles: " + angleF + " " + angleG);
+                        caCost += (Mathf.Cos(angleF * Mathf.Deg2Rad) + 1) *
+                                  (Mathf.Cos(angleG * Mathf.Deg2Rad) + 1);
+                    }
                 }
             }
         }
+        
         //Debug.Log("Conversation Angle: " + caCost*-1);
         return caCost * -1;
     }
@@ -409,30 +444,33 @@ public class Costs : MonoBehaviour
         return new Vector2(baseBounds.size.x, baseBounds.size.z);
     }
 
-
-
+    
     private static float Alignment(Layout layout)
     {
         float alignmentCost = 0;
-        
-        for (int i = 0; i < layout.F.Count; i++)
-        {
-            for (int j = i + 1; j < layout.F.Count; j++)
-            {
-                GameObject f = layout.F[i];
-                GameObject g = layout.F[j];
-                
-                Vector3 global = Vector3.forward;
-                
-                Vector3 forwardF = f.transform.forward;
-                float angleF = Vector3.Angle(forwardF, global);
 
-                Vector3 forwardG = g.transform.forward;
-                float angleG = Vector3.Angle(forwardG, global);
+        foreach (List<GameObject> group in layout.G)
+        {
+            for (int i = 0; i < group.Count; i++)
+            {
+                for (int j = i + 1; j < group.Count; j++)
+                {
+                    GameObject f = group[i];
+                    GameObject g = group[j];
                 
-                alignmentCost += Mathf.Cos(4 * ((angleF * Mathf.Deg2Rad) - (angleG * Mathf.Deg2Rad)));
+                    Vector3 global = Vector3.forward;
+                
+                    Vector3 forwardF = f.transform.forward;
+                    float angleF = Vector3.Angle(forwardF, global);
+
+                    Vector3 forwardG = g.transform.forward;
+                    float angleG = Vector3.Angle(forwardG, global);
+                
+                    alignmentCost += Mathf.Cos(4 * ((angleF * Mathf.Deg2Rad) - (angleG * Mathf.Deg2Rad)));
+                }
             }
         }
+        
         //Debug.Log("Alignment cost: " + alignmentCost*-1);
         return alignmentCost * -1;
     }
@@ -440,32 +478,36 @@ public class Costs : MonoBehaviour
     private static float WallAlignment(Layout layout)
     {
         float wallAlignmentCost = 0;
-        
-        foreach (GameObject f in layout.F)
+
+        foreach (List<GameObject> group in layout.G)
         {
-            GameObject nearestWall = layout.R[0];
-            float minDistance = float.MaxValue;
-
-            foreach (GameObject wall in layout.R)
+            foreach (GameObject f in group)
             {
-                float distance = Vector3.Distance(f.transform.position, wall.transform.position);
-                if (distance < minDistance)
+                GameObject nearestWall = layout.R[0];
+                float minDistance = float.MaxValue;
+
+                foreach (GameObject wall in layout.R)
                 {
-                    minDistance = distance;
-                    nearestWall = wall;
+                    float distance = Vector3.Distance(f.transform.position, wall.transform.position);
+                    if (distance < minDistance)
+                    {
+                        minDistance = distance;
+                        nearestWall = wall;
+                    }
                 }
-            }
             
-            Vector3 global = Vector3.forward;
+                Vector3 global = Vector3.forward;
                 
-            Vector3 forwardF = f.transform.forward;
-            float angleF = Vector3.Angle(forwardF, global);
+                Vector3 forwardF = f.transform.forward;
+                float angleF = Vector3.Angle(forwardF, global);
 
-            Vector3 wallDirection = nearestWall.transform.forward;
-            float angleWall = Vector3.Angle(wallDirection, global);
+                Vector3 wallDirection = nearestWall.transform.forward;
+                float angleWall = Vector3.Angle(wallDirection, global);
 
-            wallAlignmentCost += Mathf.Cos(4 * ((angleF * Mathf.Deg2Rad) - (angleWall * Mathf.Deg2Rad)));
+                wallAlignmentCost += Mathf.Cos(4 * ((angleF * Mathf.Deg2Rad) - (angleWall * Mathf.Deg2Rad)));
+            }
         }
+        
         //Debug.Log("Wall alignment cost: " + (wallAlignmentCost * -1) );
         return wallAlignmentCost * -1;
     }
@@ -474,20 +516,20 @@ public class Costs : MonoBehaviour
     {
         float emphasisCost = 0;
 
-        //foreach (List<GameObject> group in Layout.G)
-        //{
-            foreach (GameObject obj in layout.F)
+        for (int i = 0; i < layout.G.Count; i++)
+        {
+            foreach (GameObject obj in layout.G[i])
             {
                 if (obj.CompareTag("Chair"))
                 {
                     Vector3 forward = obj.transform.forward;
-                    Vector3 toEmphasis = (emphasisPoint.transform.position - obj.transform.position).normalized;
+                    Vector3 toEmphasis = (layout.Emphasis[i].transform.position - obj.transform.position).normalized;
                     float angle = Vector3.Angle(forward, toEmphasis);
 
                     emphasisCost += Mathf.Cos(angle * Mathf.Deg2Rad);
                 }
             }
-        //}
+        }
         //Debug.Log("Emphasis: " + emphasisCost*-1);
         return emphasisCost * -1;
     }
@@ -495,99 +537,115 @@ public class Costs : MonoBehaviour
     private static float Symmetry(Layout layout)
     {
         float symmetryCost = 0;
-        float max = 0;
         
         // Check symmetry axis
         
-        Collider[] collidersE = emphasisPoint.GetComponentsInChildren<Collider>();
-        Bounds boundsE = collidersE[0].bounds;
-        for (int k = 1; k < collidersE.Length; k++)
-            boundsE.Encapsulate(collidersE[k].bounds);
-
-        foreach (GameObject wall in layout.R)
+        for (int a = 0; a < layout.G.Count; a++)
         {
-            Collider[] collidersW = wall.GetComponentsInChildren<Collider>();
-            Bounds boundsW = collidersW[0].bounds;
-            for (int l = 1; l < collidersW.Length; l++)
-                boundsW.Encapsulate(collidersW[l].bounds);
-
-            if (boundsE.Intersects(boundsW))
+            Collider[] collidersE = layout.Emphasis[a].GetComponentsInChildren<Collider>();
+            Bounds boundsE = collidersE[0].bounds;
+            for (int k = 1; k < collidersE.Length; k++)
+                boundsE.Encapsulate(collidersE[k].bounds);
+            
+            foreach (GameObject wall in layout.R)
             {
-                Debug.Log("COLLIDED!");
-                onWall = true;
+                Collider[] collidersW = wall.GetComponentsInChildren<Collider>();
+                Bounds boundsW = collidersW[0].bounds;
+                for (int l = 1; l < collidersW.Length; l++)
+                    boundsW.Encapsulate(collidersW[l].bounds);
+
+                if (boundsE.Intersects(boundsW))
+                {
+                    //Debug.Log("COLLIDED!");
+                    onWall = true;
                 
-                // wall is longer along x axis
-                if ((boundsW.max.x - boundsW.min.x) > (boundsW.max.z - boundsW.min.z))
-                {
-                    Debug.Log("Collide Z");
-                    reflectOverX = false;
-                }
-                else
-                {
-                    Debug.Log("Collide X");
-                    reflectOverX = true;
-                }
-            }
-        }
-        //foreach (List<GameObject> group in Layout.G)
-        //{
-        for (int i = 0; i < layout.F.Count; i++)
-        {
-            max = 0;
-            bool maxAssigned = false;
-            GameObject f = layout.F[i];
-            for (int j = 0; j < layout.F.Count; j++)
-            {
-                GameObject g = layout.F[j];
-                if (f.CompareTag(g.tag) && (i != j))
-                {
-                    float newMax = SFunction(f, g, emphasisPoint);
-                    if (newMax > max || maxAssigned == false)
+                    // wall is longer along x axis
+                    if ((boundsW.max.x - boundsW.min.x) > (boundsW.max.z - boundsW.min.z))
                     {
-                        max = newMax;
-                        maxAssigned = true;
+                        //Debug.Log("Collide Z");
+                        reflectOverX = false;
+                    }
+                    else
+                    {
+                        //Debug.Log("Collide X");
+                        reflectOverZ = false;
                     }
                 }
             }
-            if (maxAssigned)
+            GameObject emphasis = layout.Emphasis[a];
+            Vector3 symOrigin = emphasis.transform.position;
+            
+            foreach (GameObject f in layout.G[a])
             {
-                symmetryCost += max; 
+                float groupSymmetry = 0;
+
+                // Reflect over X axis (flip Z)
+                if (reflectOverX)
+                {
+                    float maxSymX = float.MinValue;
+                    foreach (GameObject g in layout.G[a])
+                    {
+                        if (f == g || f.tag != g.tag) continue;
+
+                        float scoreX = SFunction(f, g, symOrigin,true);
+                        if (scoreX > maxSymX) maxSymX = scoreX;
+                    }
+                    if (maxSymX != float.MinValue)
+                        groupSymmetry += maxSymX;
+                }
+
+                // Reflect over Z axis (flip X)
+                if (reflectOverZ)
+                {
+                    float maxSymZ = float.MinValue;
+                    foreach (GameObject g in layout.G[a])
+                    {
+                        if (f == g || f.tag != g.tag) continue;
+
+                        float scoreZ = SFunction(f, g, symOrigin, false);  // false = reflect Z
+                        if (scoreZ > maxSymZ) maxSymZ = scoreZ;
+                    }
+                    if (maxSymZ != float.MinValue)
+                        groupSymmetry += maxSymZ;
+                }
+
+                symmetryCost += groupSymmetry;
             }
         }
-        //}
-        Debug.Log("Symmetry: " + symmetryCost*-1);
-        Debug.Log(reflectOverX == true ? "Reflect over X" : "Reflect over Z");
+        //Debug.Log("Symmetry: " + symmetryCost*-1);
+        //Debug.Log(reflectOverX == true ? "Reflect over X" : "Reflect over Z");
         return symmetryCost * -1;
     }
 
-    public static void SymmetricX()
-    {
-            //Debug.Log("X");
-            reflectOverX = true;
-    }
+    // public static void SymmetricX()
+    // {
+    //         //Debug.Log("X");
+    //         reflectOverX = true;
+    // }
+    //
+    // public static void SymmetricZ()
+    // {
+    //         //Debug.Log("Z");
+    //         reflectOverZ = true;
+    // }
 
-    public static void SymmetricZ()
-    {
-            //Debug.Log("Z");
-            reflectOverX = false;
-    }
-
-    private static float SFunction(GameObject f, GameObject g, GameObject p)
+    private static float SFunction(GameObject f, GameObject g, Vector3 p, bool reflectOverX)
     {
         Vector3 forwardF = f.transform.forward;
-        Vector3 toEmphasis = (emphasisPoint.transform.position - f.transform.position).normalized;
+        Vector3 toEmphasis = (p - f.transform.position).normalized;
         float angleF = Vector3.Angle(forwardF, toEmphasis);
-        
-        Vector3 reflectedPos = ReflectPosition(g.transform.position, p.transform.position, reflectOverX);
+
+        Vector3 reflectedPos = ReflectPosition(g.transform.position, p, reflectOverX);
         Vector3 reflectedForward = ReflectDirection(g.transform.forward, reflectOverX);
 
-        Vector3 toE = p.transform.position - reflectedPos;
+        Vector3 toE = p - reflectedPos;
         float angleG = Vector3.Angle(reflectedForward, toE);
 
         float combinedAngle = angleF - angleG;
-        
+    
         return Mathf.Cos(combinedAngle * Mathf.Deg2Rad) - Vector3.Distance(f.transform.position, reflectedPos);
     }
+
     
     private static Vector3 ReflectPosition(Vector3 original, Vector3 lineOrigin, bool overX)
     {

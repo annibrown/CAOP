@@ -821,6 +821,15 @@
     <Reference Include="UnityEditor.TestRunner">
       <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\UnityEditor.TestRunner.dll</HintPath>
     </Reference>
+    <Reference Include="Ultraleap.Tracking.Core.Editor">
+      <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Ultraleap.Tracking.Core.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Ultraleap.Tracking.Core">
+      <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Ultraleap.Tracking.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Ultraleap.Tracking.PhysicalHands">
+      <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Ultraleap.Tracking.PhysicalHands.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.InputSystem.ForUI">
       <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Unity.InputSystem.ForUI.dll</HintPath>
     </Reference>
@@ -893,11 +902,14 @@
     <Reference Include="Unity.RenderPipelines.Universal.Editor">
       <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Unity.RenderPipelines.Universal.Editor.dll</HintPath>
     </Reference>
+    <Reference Include="Ultraleap.Tracking.PhysicalHands.Editor">
+      <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Ultraleap.Tracking.PhysicalHands.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Ultraleap.Tracking.Hands.Editor">
+      <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Ultraleap.Tracking.Hands.Editor.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.Collections.Editor">
       <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Unity.Collections.Editor.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary">
-      <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll</HintPath>
     </Reference>
     <Reference Include="Unity.VisualScripting.Shared.Editor">
       <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Unity.VisualScripting.Shared.Editor.dll</HintPath>
@@ -910,6 +922,9 @@
     </Reference>
     <Reference Include="Unity.AI.Navigation.Updater">
       <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Unity.AI.Navigation.Updater.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary">
+      <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll</HintPath>
     </Reference>
     <Reference Include="Unity.VisualScripting.Flow.Editor">
       <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Unity.VisualScripting.Flow.Editor.dll</HintPath>
@@ -961,6 +976,9 @@
     </Reference>
     <Reference Include="Unity.Rendering.LightTransport.Runtime">
       <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Unity.Rendering.LightTransport.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Ultraleap.Tracking.Hands">
+      <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Ultraleap.Tracking.Hands.dll</HintPath>
     </Reference>
     <Reference Include="Unity.InputSystem">
       <HintPath>C:\Users\ambro\CAOP\Library\ScriptAssemblies\Unity.InputSystem.dll</HintPath>

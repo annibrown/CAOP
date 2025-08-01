@@ -22,10 +22,13 @@ public class Manager : MonoBehaviour
     private GameObject swappedFurniture;
     private int randomFurnitureIndex;
     private int swappedFurnitureIndex;
+    private int furnitureGroup;
     
     private int layoutCounter = 0;
     
     public GameObject layoutGO; // the actual layout GameObject in the scene
+    
+    public static Manager current;
     
     void Awake()
     {
@@ -34,15 +37,10 @@ public class Manager : MonoBehaviour
             GameObject layoutGO = Instantiate(layoutPrefab);
             currentLayout = layoutGO.GetComponent<Layout>();
         }
+        
+        current = this;
     }
-
-    public void Testing()
-    {
-        randomFurniture = currentLayout.F[4];
-        randomFurniture.transform.Rotate(0f, 90f, 0f);
-        Debug.Log("Cube rotation: " + transform.rotation.eulerAngles);
-    }
-
+    
     public void StartCalculation()
     {
         StartCoroutine(Calculate());
@@ -57,41 +55,160 @@ public class Manager : MonoBehaviour
             yield break;
         }
         
-        // compute cost of first layout
+        // start from messy layout
         floorGrid.UpdateTileColors(currentLayout);
-        
         var costComponents = Costs.ComputeAllCosts(currentLayout);
         cost = costComponents["Total"];
         
         // set first layout as best layout
         bestLayout = currentLayout;
         bestCost = cost;
-
+        
+        // run MCMC
         for (int i = 0; i < Parameters.iterations; i++)
         {
-            // make new layout newLayout
-            newLayout = DuplicateLayout(currentLayout);
+            MCMC(i, false);
+            yield return new WaitForSeconds(0.000001f);
+        }
+        Destroy(currentLayout.gameObject);
+
+        // ✅ Activate and show best layout
+        bestLayout.gameObject.SetActive(true);
+        currentLayout = bestLayout;
+
+        // run adjustment
+        int furnitureGroupCounter = bestLayout.G[0].Count;
+        for (int i = 0; i < bestLayout.F.Count - 1; i++)
+        {
+            if (i < furnitureGroupCounter)
+            {
+                CleanupAlignment(bestLayout.F[i], bestLayout.G[0], bestLayout);
+            }
+            else
+            {
+                CleanupAlignment(bestLayout.F[i], bestLayout.G[1], bestLayout);
+            }
+        }
+        
+        //wait for user input
+        Vector3 chairPosition = currentLayout.F[7].transform.position;
+        HandTracker.canMove = true;
+        HandTracker.targetObject = currentLayout.F[7];
+        while (currentLayout.F[7].transform.position == chairPosition)
+        {
+           // wait
+           Debug.Log("WAITING FOR HAND GESTURE");
+           yield return null;
+        }
+        Debug.Log("DETECTED HAND GESTURE");
+        
+        chairPosition = currentLayout.F[7].transform.position;
+        if (chairPosition.z < 0)
+        {
+            // group 1
+            //Debug.Log("Group 1");
+            currentLayout.G[1].Add(currentLayout.F[7]);
+            furnitureGroup = 1;
+        }
+        else
+        {
+            // group 0
+            //Debug.Log("Group 0");
+            currentLayout.G[0].Add(currentLayout.F[7]);
+            furnitureGroup = 0;
+        }
+        
+        // compute cost of first layout
+        floorGrid.UpdateTileColors(currentLayout);
+        
+        costComponents = Costs.ComputeAllCosts(currentLayout);
+        cost = costComponents["Total"];
+        
+        // set first layout as best layout
+        //bestLayout = currentLayout;
+        //bestCost = cost;
+        
+        for (int i = 0; i < Parameters.iterations; i++)
+        {
+            Debug.Log("BEFORE MCMC");
+            MCMC(i, true);
+            Debug.Log("AFTER MCMC");
+            yield return new WaitForSeconds(0.000001f);
+        }
+        // END OF MCMC
+        
+        Destroy(currentLayout.gameObject);
+        
+        // ✅ Activate and show best layout
+        bestLayout.gameObject.SetActive(true);
+        currentLayout = bestLayout;
+        
+        // ✅ Optional: update layout name or reassign visibility
+        bestLayout.name = "BestLayout";
+        
+        CleanupAlignment(bestLayout.F[7], bestLayout.G[furnitureGroup], bestLayout);
+        //randomFurniture.transform.Rotate(Vector3.up, 180f);
+        //Debug.Log("Cleaned up Results");
+        
+        HandTracker.targetObject = bestLayout.F[7];
+        //HandTracker.canMove = true;
+        
+    }
+    
+    private IEnumerator WaitForUserMove()
+    {
+        HandTracker.canMove = true;
+
+        Vector3 initialPosition = currentLayout.F[7].transform.position;
+
+        // Wait until the object has moved (in a frame-by-frame non-blocking way)
+        while (Vector3.Distance(currentLayout.F[7].transform.position, initialPosition) < 0.01f)
+        {
+            yield return null;  // Wait 1 frame
+        }
+
+        HandTracker.canMove = false;
+    }
+
+
+    void MCMC (int i, bool secondRun)
+    {
+        Debug.Log("SECOND RUN 1: " + secondRun);
+        // make new layout newLayout
+        Debug.Log($"currentLayout.F.Count: {currentLayout.F.Count}");
+        newLayout = DuplicateLayout(currentLayout); 
+        //Debug.Log($"newLayout.G.Count: {newLayout.G.Count}, Emphasis.Count: {newLayout.Emphasis.Count}"); 
+        //Debug.Log($"newLayout.F.Count: {newLayout.F.Count}");
+        //Debug.Log($"G[0].Count: {newLayout.G[0].Count}, G[1].Count: {newLayout.G[1].Count}");
             
             // TESTING
             //modification = Parameters.modifications[i];
             //randomFurniture = newLayout.F[Parameters.fIndex[i]];
             
-            // modify newLayout
-            modification = Random.Range(0, 2);
+        // modify newLayout
+        modification = Random.Range(0, 2);
             
             // FOR PICKING RANDOM FURNITURE
             // randomFurnitureIndex = Random.Range(0, newLayout.F.Count);
             // randomFurniture = newLayout.F[randomFurnitureIndex];
-            
+            Debug.Log("SECOND RUN 2: " + secondRun);
             // FOR LOOPING THROUGH FURNITURE SYSTEMATICALLY
-            int furnitureCount = newLayout.F.Count;
-            int x = Parameters.iterations / (furnitureCount * Parameters.roundsPerObject);
-            x = Mathf.Max(1, x);
-            int currentIndex = (i / x) % furnitureCount;
-            randomFurniture = newLayout.F[currentIndex];
+            if (!secondRun)
+            {
+                Debug.Log("PICKING EACH FURNITURE");
+                int furnitureCount = newLayout.F.Count - 1;
+                int x = Parameters.iterations / (furnitureCount * Parameters.roundsPerObject);
+                x = Mathf.Max(1, x);
+                int currentIndex = (i / x) % furnitureCount;
+                randomFurniture = newLayout.F[currentIndex];
+            }
             
             // TESTING ONE FURNITURE AT A TIME
-            //randomFurniture = newLayout.F[4];
+            if (secondRun)
+            {
+                Debug.Log("ONLY PICKING CHAIR");
+                randomFurniture = newLayout.F[7];
+            }
             
             if (modification == 0)
             {
@@ -118,8 +235,8 @@ public class Manager : MonoBehaviour
                     Bounds movedBounds = new Bounds(currentBounds.center + proposedMove, currentBounds.size);
 
                     // Room bounds (centered at origin)
-                    float roomWidth = UnitConverter.InchesToMeters(Parameters.floorSizeX);
-                    float roomDepth = UnitConverter.InchesToMeters(Parameters.floorSizeZ);
+                    float roomWidth = Parameters.floorSizeX;
+                    float roomDepth = Parameters.floorSizeZ;
                     Bounds roomBounds = new Bounds(Vector3.zero, new Vector3(roomWidth, 10f, roomDepth));
 
                     // Check corners of moved bounds
@@ -144,19 +261,21 @@ public class Manager : MonoBehaviour
                     if (insideRoom)
                     {
                         randomFurniture.transform.position += proposedMove;
-                        Debug.Log($"✅ Move applied on attempt {attempt + 1}");
+                        //Debug.Log($"✅ Move applied on attempt {attempt + 1}");
                         moveApplied = true;
                         break;
                     }
+                    
+                    //Debug.Log("Proposed Position: " + (randomFurniture.transform.position + proposedMove));
                 }
 
-                if (!moveApplied)
-                {
-                    Debug.Log("❌ No valid move found after max attempts");
-                }
+                // if (!moveApplied)
+                // {
+                //     Debug.Log("❌ No valid move found after max attempts");
+                // }
 
                 //randomFurniture.transform.position += new Vector3(Parameters.xPositions[i], 0, Parameters.zPositions[i]);
-                Debug.Log("Moved Furniture");
+                //Debug.Log("Moved Furniture");
             }
             else if (modification == 1)
             {
@@ -174,7 +293,7 @@ public class Manager : MonoBehaviour
                 //
                 // randomFurniture.transform.rotation = Quaternion.Euler(0, newY, 0);
                 
-                Debug.Log("Rotated Furniture");
+                //Debug.Log("Rotated Furniture, new position: " + newY);
             }
             else
             {
@@ -250,13 +369,91 @@ public class Manager : MonoBehaviour
                 //currentLayout.gameObject.SetActive(true);
                 Destroy(newLayout.gameObject);
             }
+    }
+    
+    void CleanupAlignment(GameObject target, List<GameObject> group, Layout layout)
+    {
+        GameObject nearestWall = null;
+        float minWallDist = float.MaxValue;
+        
+        // SYMMETRY CHECK
 
-            yield return new WaitForSeconds(0.000001f);
+        // find angle of nearest wall
+        foreach (GameObject wall in layout.R)
+        {
+            float dist = Vector3.Distance(target.transform.position, wall.transform.position);
+            if (dist < minWallDist)
+            {
+                minWallDist = dist;
+                nearestWall = wall;
+            }
+        }
+
+        if (nearestWall == null) return;
+
+        // Step 2: Get current directions
+        Vector3 forwardTarget = target.transform.forward;
+        Vector3 forwardWall = nearestWall.transform.forward;
+
+        float angle = Vector3.SignedAngle(forwardTarget, forwardWall, Vector3.up);
+        float absAngle = Mathf.Abs(angle);
+
+        // do smallest rotation so that item is parallel or perpendicular to that item
+        float targetAngle = angle % 90f;
+        if (targetAngle > 45f)
+        {
+            targetAngle = -1 * (90 - targetAngle);
+        }
+
+        if (targetAngle < -45f)
+        {
+            targetAngle = 90 + targetAngle;
+        }
+        //Debug.Log("Clean up Rotation: " + targetAngle);
+
+        // Step 4: Apply rotation
+        target.transform.Rotate(Vector3.up, targetAngle);
+
+        // Step 5: Snap to line (assume alignment along X or Z)
+        // find object that is most aligned with it in both directions, and set it to that
+        
+        float minDistX = float.MaxValue;
+        float minDistZ = float.MaxValue;
+        
+        foreach (GameObject other in group)
+        {
+            if (other == target) continue;
+            float distX = other.transform.position.x - target.transform.position.x;
+            float distZ = other.transform.position.z - target.transform.position.z;
+            if (distX < Parameters.maxDist && distX > -1 * Parameters.maxDist)
+            {
+                if (distX < minDistX) minDistX = distX;
+            }
+            if (distZ < Parameters.maxDist && distZ > -1 * Parameters.maxDist)
+            {
+                if (distZ < minDistZ) minDistZ = distZ;
+            }
         }
         
-        // destroy current layout, so only show best layout
-        Destroy(currentLayout.gameObject);
+        Vector3 pos = target.transform.position;
+
+        if (minDistX < float.MaxValue)
+        {
+            pos.x += minDistX;
+            //Debug.Log("Clean up x Position: " + minDistX);
+        }
+
+        if (minDistZ < float.MaxValue)
+        {
+            pos.z += minDistZ;
+            //Debug.Log("Clean up z Position: " + minDistZ);
+        }
+
+        target.transform.position = pos;
+        
+        // MAYBE: rotate 90 degress and check cost
     }
+
 
     public static float RandomGaussian(float mean, float stdDev)
     {
@@ -273,10 +470,21 @@ public class Manager : MonoBehaviour
 
         Layout newLayout = newGO.GetComponent<Layout>();
         newLayout.F = new List<GameObject>();
+        newLayout.G = new List<List<GameObject>>();
+        newLayout.Emphasis = new List<GameObject>();
 
+        Dictionary<GameObject, GameObject> cloneMap = new();
+
+        Debug.Log($"original.F.Count: {original.F.Count}");
+        
         foreach (GameObject f in original.F)
         {
-            Furniture furniture = f.GetComponent<Furniture>();
+            if (f == null)
+            {
+                Debug.Log("FURNITURE IS NULL");
+            };
+            
+            Furniture furniture = f.GetComponent<Furniture>(); // THIS LINE
             GameObject prefab = furniture != null ? furniture.prefabSource : f;
 
             GameObject copy = Instantiate(
@@ -286,19 +494,38 @@ public class Manager : MonoBehaviour
                 newGO.transform
             );
 
-            // Copy scale manually
             copy.transform.localScale = f.transform.localScale;
 
-            // ✅ Set the prefab source again for next generation
             Furniture newFurniture = copy.GetComponent<Furniture>();
             if (newFurniture != null && furniture != null)
             {
                 newFurniture.prefabSource = furniture.prefabSource;
             }
-            
+
             copy.tag = f.tag;
 
             newLayout.F.Add(copy);
+            cloneMap[f] = copy; 
+        }
+        
+        // Duplicate groups
+        foreach (List<GameObject> group in original.G)
+        {
+            List<GameObject> newGroup = new List<GameObject>();
+            foreach (GameObject member in group)
+            {
+                if (cloneMap.ContainsKey(member))
+                    newGroup.Add(cloneMap[member]);
+            }
+            newLayout.G.Add(newGroup);
+        }
+
+        // Duplicate emphasis objects
+        foreach (GameObject e in original.Emphasis)
+        {
+            GameObject copy = Instantiate(e, e.transform.position, e.transform.rotation, newGO.transform);
+            copy.transform.localScale = e.transform.localScale;
+            newLayout.Emphasis.Add(copy);
         }
 
         newLayout.R = original.R;
